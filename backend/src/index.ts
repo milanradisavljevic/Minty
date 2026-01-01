@@ -8,7 +8,6 @@ import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import { spawn } from 'child_process';
 import { getSystemMetrics, getMetricsHistory } from './services/metricsService.js';
-import { getStockQuotes, getWatchlist } from './services/stockService.js';
 import { getAllFeeds, getFeed, getFeedList, testFeedUrl } from './services/newsService.js';
 import { getCalendarEvents } from './services/calendarService.js';
 import {
@@ -40,6 +39,14 @@ import type { DashboardConfig, NewsFeedConfig } from '../../shared/types/index.j
 
 const app = express();
 const httpServer = createServer(app);
+
+const STOCKS_ENABLED =
+  process.env.STOCKS_ENABLED === '1' || process.env.STOCKS_ENABLED === 'true';
+
+async function loadStockService() {
+  if (!STOCKS_ENABLED) return null;
+  return import('./stocks/stockService.js');
+}
 
 // Load initial config (config file + DB overrides)
 loadConfig();
@@ -230,6 +237,27 @@ app.get('/api/weather', async (_req, res) => {
 
 // Stock endpoints
 app.get('/api/stocks', async (req, res) => {
+  if (!STOCKS_ENABLED) {
+    res.status(503).json({
+      quotes: [],
+      error: 'Stocks disabled (backlog)',
+      disabled: true,
+      timestamp: Date.now(),
+    });
+    return;
+  }
+
+  const stockService = await loadStockService();
+  if (!stockService) {
+    res.status(503).json({
+      quotes: [],
+      error: 'Stocks disabled (backlog)',
+      disabled: true,
+      timestamp: Date.now(),
+    });
+    return;
+  }
+
   try {
     const symbolsParam = req.query.symbols;
     const symbols =
@@ -241,7 +269,7 @@ app.get('/api/stocks', async (req, res) => {
         : undefined;
 
     const force = req.query.force === 'true' || req.query.force === '1';
-    const result = await getStockQuotes(symbols, { force });
+    const result = await stockService.getStockQuotes(symbols, { force });
     res.json({
       ...result,
       timestamp: result.timestamp ?? Date.now(),
@@ -254,7 +282,8 @@ app.get('/api/stocks', async (req, res) => {
 });
 
 app.get('/api/stocks/watchlist', (_req, res) => {
-  res.json({ watchlist: getWatchlist() });
+  const watchlist = getConfig().stocks.watchlist ?? [];
+  res.json({ watchlist, disabled: !STOCKS_ENABLED });
 });
 
 // News endpoints

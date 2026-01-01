@@ -6,6 +6,8 @@ import { getLocale, useTranslation } from '../i18n';
 const MIN_REFRESH_MS = 15000;
 const INITIAL_RETRY_MS = 5000;
 const MAX_RETRY_MS = 60000;
+const STOCKS_ENABLED =
+  import.meta.env.VITE_STOCKS_ENABLED === '1' || import.meta.env.VITE_STOCKS_ENABLED === 'true';
 
 type FetchReason = 'initial' | 'poll' | 'retry' | 'manual';
 
@@ -47,6 +49,19 @@ export function StockTickerBar() {
 
     retryDelayRef.current = INITIAL_RETRY_MS;
     clearRetryTimeout();
+
+    if (!STOCKS_ENABLED) {
+      setQuotes([]);
+      setStatus('ready');
+      setError(null);
+      setSourceInfo({});
+      setLastUpdated(null);
+      setLastAsOf(null);
+      return () => {
+        isMounted = false;
+        clearRetryTimeout();
+      };
+    }
 
     function scheduleRetry() {
       clearRetryTimeout();
@@ -234,6 +249,14 @@ export function StockTickerBar() {
   const lastUpdatedLabel = lastUpdated ? new Date(lastUpdated).toLocaleTimeString(locale) : null;
   const asOfLabel = lastAsOf ? new Date(lastAsOf).toLocaleTimeString(locale) : null;
   const asOfAgeMinutes = lastAsOf ? Math.round((Date.now() - lastAsOf) / 60000) : null;
+
+  if (!STOCKS_ENABLED) {
+    return (
+      <div className="h-10 bg-[var(--color-widget-bg)] border-b border-[var(--color-widget-border)] flex items-center justify-center">
+        <span className="text-sm text-[var(--color-text-secondary)]">Stocks disabled (Backlog)</span>
+      </div>
+    );
+  }
 
   if (status === 'loading' && quotes.length === 0) {
     return (

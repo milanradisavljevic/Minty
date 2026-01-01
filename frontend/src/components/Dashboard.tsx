@@ -5,7 +5,7 @@ import type * as RGL from 'react-grid-layout';
 import { useDashboardStore } from '../stores/dashboardStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useSocket } from '../hooks/useSocket';
-import { StockTickerBar } from './StockTickerBar';
+import { StockTickerBar } from '../stocks/StockTickerBar';
 import { TimelineBar } from './TimelineBar';
 import { SettingsModal } from './SettingsModal';
 import { WidgetContextMenu } from './WidgetContextMenu';

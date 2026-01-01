@@ -1,5 +1,5 @@
 import YahooFinance from 'yahoo-finance2';
-import { getConfig } from './configService.js';
+import { getConfig } from '../services/configService.js';
 import type { StockQuote, StockQuotesResponse } from '../../../shared/types/index.js';
 
 // Initialize Yahoo Finance instance (required since v3)

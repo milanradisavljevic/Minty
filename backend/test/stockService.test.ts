@@ -6,7 +6,7 @@ import {
   parseYahooQuote,
   setCachedQuoteForTest,
   setQuoteFetcherForTest,
-} from '../src/services/stockService.js';
+} from '../src/stocks/stockService.js';
 
 afterEach(() => {
   clearQuoteCacheForTest();
