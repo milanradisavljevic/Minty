@@ -253,7 +253,7 @@ export function StockTickerBar() {
   if (!STOCKS_ENABLED) {
     return (
       <div className="h-10 bg-[var(--color-widget-bg)] border-b border-[var(--color-widget-border)] flex items-center justify-center">
-        <span className="text-sm text-[var(--color-text-secondary)]">Stocks disabled (Backlog)</span>
+        <span className="text-sm text-[var(--color-text-secondary)]">Stocks under construction</span>
       </div>
     );
   }

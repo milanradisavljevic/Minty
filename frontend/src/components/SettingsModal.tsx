@@ -50,6 +50,8 @@ function StocksTab() {
   const updateInterval = useSettingsStore((s) => s.stocks?.updateInterval ?? 120000);
   const setIntervalMs = useSettingsStore((s) => s.setStockUpdateInterval);
   const [newSymbol, setNewSymbol] = useState('');
+  const stocksEnabled =
+    import.meta.env.VITE_STOCKS_ENABLED === '1' || import.meta.env.VITE_STOCKS_ENABLED === 'true';
 
   const handleAdd = () => {
     if (newSymbol.trim()) {
@@ -64,6 +66,12 @@ function StocksTab() {
         {t('stocks_description')}
       </p>
 
+      {!stocksEnabled && (
+        <div className="text-sm text-[var(--color-text-secondary)] bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] rounded-md px-3 py-2">
+          Stocks under construction
+        </div>
+      )}
+
       <div className="flex gap-2">
         <input
           type="text"
@@ -71,11 +79,13 @@ function StocksTab() {
           onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           placeholder={t('stocks_placeholder')}
-          className="flex-1 px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+          className="flex-1 px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)] disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled={!stocksEnabled}
         />
         <button
           onClick={handleAdd}
-          className="px-4 py-2 rounded-md bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors"
+          className="px-4 py-2 rounded-md bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled={!stocksEnabled}
         >
           {t('stocks_add')}
         </button>
@@ -91,7 +101,8 @@ function StocksTab() {
           max={600}
           value={Math.round(updateInterval / 1000)}
           onChange={(e) => setIntervalMs(Number(e.target.value) * 1000)}
-          className="w-32 px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+          className="w-32 px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)] disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled={!stocksEnabled}
         />
         <p className="text-[11px] text-[var(--color-text-secondary)]">
           {t('stocks_interval_hint')}
@@ -107,7 +118,8 @@ function StocksTab() {
             <span className="text-sm text-[var(--color-text-primary)]">{symbol}</span>
             <button
               onClick={() => removeStock(symbol)}
-              className="text-[var(--color-text-secondary)] hover:text-[var(--color-error)] transition-colors"
+              className="text-[var(--color-text-secondary)] hover:text-[var(--color-error)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={!stocksEnabled}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
