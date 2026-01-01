@@ -1,0 +1,118 @@
+{
+  "settings": {
+    "title": "Podešavanja",
+    "tabs": {
+      "general": "Opšte",
+      "widgets": "Vidžeti",
+      "clock": "Sat i Datum",
+      "appearance": "Izgled",
+      "language": "Jezik",
+      "news": "Vesti",
+      "stocks": "Akcije",
+      "pomodoro": "Pomodoro"
+    }
+  },
+  "clock": {
+    "timeFormat": "Format Vremena",
+    "timeFormat24h": "24-časovni",
+    "timeFormat12h": "12-časovni (AM/PM)",
+    "timeFormatSystem": "Sistemski Podrazumevani",
+    "showSeconds": "Prikaži Sekunde",
+    "showDate": "Prikaži Datum",
+    "dateFormat": "Format Datuma",
+    "dateFormatDMY": "DD.MM.GGGG",
+    "dateFormatMDY": "MM/DD/GGGG",
+    "dateFormatYMD": "GGGG-MM-DD",
+    "dateFormatLong": "DD. MMMM GGGG",
+    "dateFormatSystem": "Sistemski Locale",
+    "showWeekday": "Prikaži Dan u Nedelji",
+    "weekdayFormat": "Format Dana",
+    "weekdayShort": "Kratko (Pon)",
+    "weekdayLong": "Dugo (Ponedeljak)",
+    "preview": "Pregled"
+  },
+  "appearance": {
+    "backgroundOpacity": "Prozirnost Pozadine",
+    "widgetOpacity": "Prozirnost Vidžeta",
+    "enableBlur": "Blur Efekat",
+    "blurStrength": "Jačina Blur-a",
+    "transparencyNote": "Prozirnost radi potpuno u desktop aplikaciji. U pretraživačima, efekat je ograničen."
+  },
+  "language": {
+    "locale": "Jezik",
+    "mintyLanguage": "Minty Komentari",
+    "followSystem": "Prati Jezik",
+    "de": "Deutsch",
+    "en": "English",
+    "es": "Español",
+    "sr": "Srpski",
+    "system": "Sistemski Podrazumevani"
+  },
+  "minty": {
+    "comments": {
+      "linuxPride": [
+        "Koristim Mint, inače.",
+        "Mass gengat kernel panic.",
+        "Uptime duži od tvog poslednjeg Windows-a bez prinudnog update-a.",
+        "Flatpak ili Snap? ...Molim te.",
+        "Radi na mojoj mašini!",
+        "Sudo napravi mi sendvič.",
+        "Oblak je samo tuđi računar.",
+        "Dokumentacija je za kukavice. I ljude koji žele da spavaju.",
+        "Slobodan kao u slobodi. I pivo."
+      ],
+      "archRoasts": [
+        "Arch korisnik bi kompajlirao ovaj dashboard. I napisao blog post o tome.",
+        "Arch je sjajan. Ako imaš vremena.",
+        "Inače, ja zapravo radim.",
+        "Ne koristim Arch. Imam život."
+      ],
+      "windowsMac": [
+        "Windows Update? Ne poznajem je.",
+        "Mac korisnik bi platio 2000€ za ovaj dashboard.",
+        "Bluescreen of Death? Je l' to novi album?",
+        "Cortana? Siri? Ja sam Minty. Ne smaramam.",
+        "Ctrl+Alt+Del? Više volim Ctrl+C."
+      ],
+      "cinnamonMint": [
+        "Cinnamon čini sve boljim. 🫚",
+        "GNOME je hteo da mi oduzme taskbar. Cinnamon nije.",
+        "Mint: Jer je Ubuntu postao previše mejnstrim.",
+        "Baziran na Ubuntu-u. Bolji od Ubuntu-a."
+      ],
+      "timeOfDay": {
+        "morning": ["Kafa... treba mi kafa...", "Već je ponedeljak?"],
+        "forenoon": ["Produktivnost! Ili bar pretvaranje.", "Radi glatko~", "Hajde da počnemo."],
+        "afternoon": ["Poslepodnevni pad? Ne poznajem. Ja sam list.", "Sve u zelenom!", "Popodnevne vibre."],
+        "evening": ["Još jedan tab? Stvarno?", "Vreme zatvaranja... ili?", "Još produktivan?"],
+        "night": ["Još si budan? Respekt.", "Spavanje je precenjeno.", "Noćna smena ekipa."],
+        "lateNight": ["Mi smo noćna smena.", "Najbolje ideje dolaze noću. Ili najgore.", "Misli u 3 ujutru pogađaju drugačije."]
+      }
+    },
+    "states": {
+      "healthy": "aktivan",
+      "highCpu": "aktivan",
+      "highRam": "gladan",
+      "highTemp": "vruć"
+    },
+    "alerts": {
+      "highRam": "Ponestaje memorije!",
+      "highTemp": "Postaje mi vruće! Hlađenje!",
+      "loading": "Minty se budi..."
+    }
+  },
+  "widgets": {
+    "clock": "Sat",
+    "systemPet": "Minty",
+    "musicPlayer": "Muzički Plejer",
+    "ambientSound": "Ambijentalni Zvuci",
+    "upcoming": "Predstojeće",
+    "rabbitHole": "Rabbit Hole",
+    "news": "Vesti",
+    "weather": "Vreme",
+    "calendar": "Kalendar",
+    "tasks": "Zadaci",
+    "system": "Sistem",
+    "pomodoro": "Pomodoro"
+  }
+}

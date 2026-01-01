@@ -1,0 +1,118 @@
+{
+  "settings": {
+    "title": "Einstellungen",
+    "tabs": {
+      "general": "Allgemein",
+      "widgets": "Widgets",
+      "clock": "Uhr & Datum",
+      "appearance": "Darstellung",
+      "language": "Sprache",
+      "news": "News",
+      "stocks": "Aktien",
+      "pomodoro": "Pomodoro"
+    }
+  },
+  "clock": {
+    "timeFormat": "Zeitformat",
+    "timeFormat24h": "24-Stunden",
+    "timeFormat12h": "12-Stunden (AM/PM)",
+    "timeFormatSystem": "System-Standard",
+    "showSeconds": "Sekunden anzeigen",
+    "showDate": "Datum anzeigen",
+    "dateFormat": "Datumsformat",
+    "dateFormatDMY": "TT.MM.JJJJ",
+    "dateFormatMDY": "MM/TT/JJJJ",
+    "dateFormatYMD": "JJJJ-MM-TT",
+    "dateFormatLong": "TT. MMMM JJJJ",
+    "dateFormatSystem": "System-Locale",
+    "showWeekday": "Wochentag anzeigen",
+    "weekdayFormat": "Wochentag-Format",
+    "weekdayShort": "Kurz (Mo)",
+    "weekdayLong": "Lang (Montag)",
+    "preview": "Vorschau"
+  },
+  "appearance": {
+    "backgroundOpacity": "Hintergrund-Transparenz",
+    "widgetOpacity": "Widget-Transparenz",
+    "enableBlur": "Blur-Effekt",
+    "blurStrength": "Blur-Stärke",
+    "transparencyNote": "Transparenz funktioniert vollständig in der Desktop-App. Im Browser ist der Effekt eingeschränkt."
+  },
+  "language": {
+    "locale": "Sprache",
+    "mintyLanguage": "Minty-Sprüche",
+    "followSystem": "Folgt Sprache",
+    "de": "Deutsch",
+    "en": "English",
+    "es": "Español",
+    "sr": "Srpski",
+    "system": "System-Standard"
+  },
+  "minty": {
+    "comments": {
+      "linuxPride": [
+        "Ich nutze Mint, übrigens.",
+        "Mass gengat kernel panic.",
+        "Uptime länger als dein letztes Windows ohne Zwangs-Update.",
+        "Flatpak oder Snap? ...Bitte.",
+        "Läuft auf meiner Maschine!",
+        "Sudo mach mir ein Sandwich.",
+        "Die Cloud ist nur der Computer von jemand anderem.",
+        "Dokumentation ist für Feiglinge. Und Leute die schlafen wollen.",
+        "Frei wie in Freiheit. Und Bier."
+      ],
+      "archRoasts": [
+        "Ein Arch-User hätte dieses Dashboard kompiliert. Und einen Blogpost darüber geschrieben.",
+        "Arch ist toll. Wenn man Zeit hat.",
+        "Übrigens, ich funktioniere wirklich.",
+        "Ich nutze kein Arch. Ich habe ein Leben."
+      ],
+      "windowsMac": [
+        "Windows Update? Kenne ich nicht.",
+        "Ein Mac-User würde 2000€ für dieses Dashboard zahlen.",
+        "Bluescreen of Death? Ist das ein neues Album?",
+        "Cortana? Siri? Ich bin Minty. Ich nerve nicht.",
+        "Strg+Alt+Entf? Ich bevorzuge Strg+C."
+      ],
+      "cinnamonMint": [
+        "Cinnamon macht alles besser. 🫚",
+        "GNOME wollte mir meine Taskleiste wegnehmen. Cinnamon nicht.",
+        "Mint: Weil Ubuntu zu Mainstream wurde.",
+        "Basiert auf Ubuntu. Besser als Ubuntu."
+      ],
+      "timeOfDay": {
+        "morning": ["Kaffee... brauche Kaffee...", "Ist schon Montag?"],
+        "forenoon": ["Produktivität! Oder zumindest so tun.", "Läuft rund~", "Los geht's."],
+        "afternoon": ["Mittagstief? Kenne ich nicht. Ich bin ein Blatt.", "Alles im grünen Bereich!", "Nachmittags-Vibes."],
+        "evening": ["Noch ein Tab? Wirklich?", "Feierabend... oder?", "Noch produktiv?"],
+        "night": ["Du bist noch wach? Respekt.", "Schlaf ist überbewertet.", "Nachtschicht-Gang."],
+        "lateNight": ["Wir sind die Nachtschicht.", "Beste Ideen kommen nachts. Oder die schlechtesten.", "3-Uhr-Gedanken treffen anders."]
+      }
+    },
+    "states": {
+      "healthy": "aktiv",
+      "highCpu": "aktiv",
+      "highRam": "hungrig",
+      "highTemp": "heiß"
+    },
+    "alerts": {
+      "highRam": "Speicher wird knapp!",
+      "highTemp": "Wird mir heiß hier! Kühlung!",
+      "loading": "Minty wacht auf..."
+    }
+  },
+  "widgets": {
+    "clock": "Uhr",
+    "systemPet": "Minty",
+    "musicPlayer": "Music Player",
+    "ambientSound": "Ambient Sounds",
+    "upcoming": "Upcoming",
+    "rabbitHole": "Rabbit Hole",
+    "news": "News",
+    "weather": "Wetter",
+    "calendar": "Kalender",
+    "tasks": "Aufgaben",
+    "system": "System",
+    "pomodoro": "Pomodoro"
+  }
+}

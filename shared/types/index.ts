@@ -72,7 +72,8 @@ export type WidgetType =
   | 'upcoming'
   | 'rabbitHole'
   | 'musicPlayer'
-  | 'pomodoro';
+  | 'pomodoro'
+  | 'decisionLog';
 
 export interface WidgetLayout {
   i: string;
@@ -236,6 +237,15 @@ export interface Task {
 export interface Note {
   id: number;
   content: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// Decision Log
+export interface Decision {
+  id: number;
+  title: string;
+  reason?: string;
   createdAt: number;
   updatedAt: number;
 }

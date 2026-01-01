@@ -1,0 +1,118 @@
+{
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "general": "General",
+      "widgets": "Widgets",
+      "clock": "Clock & Date",
+      "appearance": "Appearance",
+      "language": "Language",
+      "news": "News",
+      "stocks": "Stocks",
+      "pomodoro": "Pomodoro"
+    }
+  },
+  "clock": {
+    "timeFormat": "Time Format",
+    "timeFormat24h": "24-hour",
+    "timeFormat12h": "12-hour (AM/PM)",
+    "timeFormatSystem": "System Default",
+    "showSeconds": "Show Seconds",
+    "showDate": "Show Date",
+    "dateFormat": "Date Format",
+    "dateFormatDMY": "DD.MM.YYYY",
+    "dateFormatMDY": "MM/DD/YYYY",
+    "dateFormatYMD": "YYYY-MM-DD",
+    "dateFormatLong": "DD. MMMM YYYY",
+    "dateFormatSystem": "System Locale",
+    "showWeekday": "Show Weekday",
+    "weekdayFormat": "Weekday Format",
+    "weekdayShort": "Short (Mon)",
+    "weekdayLong": "Long (Monday)",
+    "preview": "Preview"
+  },
+  "appearance": {
+    "backgroundOpacity": "Background Transparency",
+    "widgetOpacity": "Widget Transparency",
+    "enableBlur": "Blur Effect",
+    "blurStrength": "Blur Strength",
+    "transparencyNote": "Transparency works fully in the desktop app. In browsers, the effect is limited."
+  },
+  "language": {
+    "locale": "Language",
+    "mintyLanguage": "Minty Comments",
+    "followSystem": "Follow Language",
+    "de": "Deutsch",
+    "en": "English",
+    "es": "Español",
+    "sr": "Srpski",
+    "system": "System Default"
+  },
+  "minty": {
+    "comments": {
+      "linuxPride": [
+        "I use Mint, BTW.",
+        "Mass gengat kernel panic.",
+        "Uptime longer than your last Windows without forced update.",
+        "Flatpak or Snap? ...Please.",
+        "It works on my machine!",
+        "Sudo make me a sandwich.",
+        "The cloud is just someone else's computer.",
+        "Documentation is for cowards. And people who want to sleep.",
+        "Free as in freedom. And beer."
+      ],
+      "archRoasts": [
+        "An Arch user would have compiled this dashboard. And written a blog post about it.",
+        "Arch is great. If you have time.",
+        "BTW, I actually work.",
+        "I don't use Arch. I have a life."
+      ],
+      "windowsMac": [
+        "Windows Update? Don't know her.",
+        "A Mac user would pay $2000 for this dashboard.",
+        "Bluescreen of Death? Is that a new album?",
+        "Cortana? Siri? I'm Minty. I don't annoy.",
+        "Ctrl+Alt+Del? I prefer Ctrl+C."
+      ],
+      "cinnamonMint": [
+        "Cinnamon makes everything better. 🫚",
+        "GNOME wanted to take away my taskbar. Cinnamon didn't.",
+        "Mint: Because Ubuntu became too mainstream.",
+        "Based on Ubuntu. Better than Ubuntu."
+      ],
+      "timeOfDay": {
+        "morning": ["Coffee... need coffee...", "Is it Monday already?"],
+        "forenoon": ["Productivity! Or at least pretending.", "Running smooth~", "Let's get this bread."],
+        "afternoon": ["Lunch slump? Don't know her. I'm a leaf.", "All in the green!", "Afternoon vibes."],
+        "evening": ["Another tab? Really?", "Closing time... or?", "Still productive?"],
+        "night": ["You still awake? Respect.", "Sleep is overrated.", "Night shift gang."],
+        "lateNight": ["We are the night shift.", "Best ideas come at night. Or the worst.", "3 AM thoughts hit different."]
+      }
+    },
+    "states": {
+      "healthy": "active",
+      "highCpu": "active",
+      "highRam": "hungry",
+      "highTemp": "hot"
+    },
+    "alerts": {
+      "highRam": "Running out of memory!",
+      "highTemp": "Getting hot here! Cooling!",
+      "loading": "Minty is waking up..."
+    }
+  },
+  "widgets": {
+    "clock": "Clock",
+    "systemPet": "Minty",
+    "musicPlayer": "Music Player",
+    "ambientSound": "Ambient Sounds",
+    "upcoming": "Upcoming",
+    "rabbitHole": "Rabbit Hole",
+    "news": "News",
+    "weather": "Weather",
+    "calendar": "Calendar",
+    "tasks": "Tasks",
+    "system": "System",
+    "pomodoro": "Pomodoro"
+  }
+}

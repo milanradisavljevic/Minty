@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Ultrawide Dashboard
+Comment=Personal Dashboard with Minty - The System Pet
+Exec=/home/milan/CA Sandbox/ultrawide-dashboard/start-dashboard.sh
+Icon=/home/milan/CA Sandbox/ultrawide-dashboard/frontend/public/icons/minty-icon-256.png
+Terminal=false
+Categories=Utility;Monitor;
+Keywords=dashboard;system;minty;
+StartupNotify=true

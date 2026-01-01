@@ -737,8 +737,262 @@ function PomodoroTab() {
   );
 }
 
+function ClockTab() {
+  const clock = useSettingsStore((s) => s.clock);
+  const setClockSettings = useSettingsStore((s) => s.setClockSettings);
+  const [previewTime, setPreviewTime] = useState(new Date());
+
+  // Update preview time every second
+  useEffect(() => {
+    const interval = setInterval(() => setPreviewTime(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Format time inline
+  const formatOptions: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit',
+    ...(clock.showSeconds && { second: '2-digit' }),
+  };
+  if (clock.timeFormat === '12h') {
+    formatOptions.hour12 = true;
+  } else if (clock.timeFormat === '24h') {
+    formatOptions.hour12 = false;
+  }
+  const timeStr = previewTime.toLocaleTimeString(undefined, formatOptions);
+
+  // Format date inline
+  let dateStr = '';
+  if (clock.showDate) {
+    if (clock.dateFormat === 'system') {
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        ...(clock.showWeekday && { weekday: clock.weekdayFormat }),
+      };
+      dateStr = previewTime.toLocaleDateString(undefined, dateOptions);
+    } else {
+      const day = previewTime.getDate().toString().padStart(2, '0');
+      const month = (previewTime.getMonth() + 1).toString().padStart(2, '0');
+      const year = previewTime.getFullYear();
+      let weekdayStr = '';
+      if (clock.showWeekday) {
+        weekdayStr = previewTime.toLocaleDateString(undefined, { weekday: clock.weekdayFormat }) + ', ';
+      }
+      switch (clock.dateFormat) {
+        case 'DMY':
+          dateStr = `${weekdayStr}${day}.${month}.${year}`;
+          break;
+        case 'MDY':
+          dateStr = `${weekdayStr}${month}/${day}/${year}`;
+          break;
+        case 'YMD':
+          dateStr = `${weekdayStr}${year}-${month}-${day}`;
+          break;
+        case 'long':
+          dateStr = previewTime.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            ...(clock.showWeekday && { weekday: clock.weekdayFormat }),
+          });
+          break;
+        default:
+          dateStr = `${weekdayStr}${day}.${month}.${year}`;
+      }
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Preview */}
+      <div className="p-4 bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] rounded-lg text-center">
+        <p className="text-xs text-[var(--color-text-secondary)] mb-2">Preview</p>
+        <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{timeStr}</p>
+        {dateStr && <p className="text-sm text-[var(--color-text-secondary)] mt-1">{dateStr}</p>}
+      </div>
+
+      {/* Time Format */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+          Time Format
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {(['system', '24h', '12h'] as const).map((format) => (
+            <button
+              key={format}
+              onClick={() => setClockSettings({ timeFormat: format })}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                clock.timeFormat === format
+                  ? 'bg-[var(--color-accent)] text-white'
+                  : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
+              }`}
+            >
+              {format === 'system' && 'System'}
+              {format === '24h' && '24h'}
+              {format === '12h' && '12h'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Show Seconds */}
+      <div className="flex items-center justify-between">
+        <label className="text-sm text-[var(--color-text-primary)]">Show Seconds</label>
+        <div
+          className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+            clock.showSeconds ? 'bg-[var(--color-accent)]' : 'bg-gray-600'
+          }`}
+          onClick={() => setClockSettings({ showSeconds: !clock.showSeconds })}
+        >
+          <div
+            className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+              clock.showSeconds ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </div>
+      </div>
+
+      {/* Show Date */}
+      <div className="flex items-center justify-between">
+        <label className="text-sm text-[var(--color-text-primary)]">Show Date</label>
+        <div
+          className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+            clock.showDate ? 'bg-[var(--color-accent)]' : 'bg-gray-600'
+          }`}
+          onClick={() => setClockSettings({ showDate: !clock.showDate })}
+        >
+          <div
+            className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+              clock.showDate ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </div>
+      </div>
+
+      {/* Date Format */}
+      {clock.showDate && (
+        <>
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+              Date Format
+            </label>
+            <select
+              value={clock.dateFormat}
+              onChange={(e) => setClockSettings({ dateFormat: e.target.value as any })}
+              className="w-full px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+            >
+              <option value="system">System</option>
+              <option value="DMY">DD.MM.YYYY</option>
+              <option value="MDY">MM/DD/YYYY</option>
+              <option value="YMD">YYYY-MM-DD</option>
+              <option value="long">Long Format</option>
+            </select>
+          </div>
+
+          {/* Show Weekday */}
+          <div className="flex items-center justify-between">
+            <label className="text-sm text-[var(--color-text-primary)]">Show Weekday</label>
+            <div
+              className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+                clock.showWeekday ? 'bg-[var(--color-accent)]' : 'bg-gray-600'
+              }`}
+              onClick={() => setClockSettings({ showWeekday: !clock.showWeekday })}
+            >
+              <div
+                className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                  clock.showWeekday ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </div>
+          </div>
+
+          {/* Weekday Format */}
+          {clock.showWeekday && (
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+                Weekday Format
+              </label>
+              <div className="flex gap-2">
+                {(['short', 'long'] as const).map((format) => (
+                  <button
+                    key={format}
+                    onClick={() => setClockSettings({ weekdayFormat: format })}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      clock.weekdayFormat === format
+                        ? 'bg-[var(--color-accent)] text-white'
+                        : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
+                    }`}
+                  >
+                    {format === 'short' ? 'Short (Mon)' : 'Long (Monday)'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+
+function LanguageTab() {
+  const languageSettings = useSettingsStore((s) => s.languageSettings);
+  const setLanguageSettings = useSettingsStore((s) => s.setLanguageSettings);
+  const setLanguage = useSettingsStore((s) => s.setLanguage);
+
+  // Language labels with fallbacks
+  const languageLabels: Record<Language, string> = {
+    de: 'Deutsch',
+    en: 'English',
+    es: 'Español',
+    sr: 'Srpski',
+  };
+
+  const handleLanguageChange = (lang: Language) => {
+    setLanguageSettings({ locale: lang });
+    setLanguage(lang); // Sync with general.language for backwards compatibility
+  };
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-[var(--color-text-secondary)]">
+        Select your preferred language. All interface elements and Minty will use this language.
+      </p>
+
+      {/* App Language */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+          Language
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {(Object.entries(languageLabels) as [Language, string][]).map(([lang, label]) => (
+            <button
+              key={lang}
+              onClick={() => handleLanguageChange(lang)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                languageSettings.locale === lang
+                  ? 'bg-[var(--color-accent)] text-white'
+                  : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)] hover:border-[var(--color-accent)]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Info Note */}
+      <div className="text-xs text-[var(--color-text-secondary)] bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] rounded-md px-3 py-2">
+        💡 This language applies to all interface elements, including Minty's comments.
+      </div>
+    </div>
+  );
+}
+
 export function SettingsModal() {
-  const { t } = useTranslation();
   const isOpen = useSettingsStore((s) => s.isOpen);
   const closeSettings = useSettingsStore((s) => s.closeSettings);
   const activeTab = useSettingsStore((s) => s.activeTab);
@@ -747,11 +1001,13 @@ export function SettingsModal() {
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'widgets' as const, label: t('tab_widgets'), icon: '🧩' },
-    { id: 'stocks' as const, label: t('tab_stocks'), icon: '📈' },
-    { id: 'news' as const, label: t('tab_news'), icon: '📰' },
-    { id: 'pomodoro' as const, label: t('tab_pomodoro'), icon: '🍅' },
-    { id: 'general' as const, label: t('tab_general'), icon: '⚙️' },
+    { id: 'widgets' as const, label: 'Widgets', icon: '🧩' },
+    { id: 'clock' as const, label: 'Clock', icon: '🕐' },
+    { id: 'language' as const, label: 'Language', icon: '🌐' },
+    { id: 'news' as const, label: 'News', icon: '📰' },
+    { id: 'stocks' as const, label: 'Stocks', icon: '📈' },
+    { id: 'pomodoro' as const, label: 'Pomodoro', icon: '🍅' },
+    { id: 'general' as const, label: 'General', icon: '⚙️' },
   ];
 
   return (
@@ -762,16 +1018,17 @@ export function SettingsModal() {
         onClick={closeSettings}
       />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-2xl mx-4 bg-[var(--color-card-bg)] rounded-xl shadow-2xl border border-[var(--color-widget-border)] overflow-hidden">
+      {/* Modal - Increased width for ultrawide displays */}
+      <div className="relative w-full max-w-5xl mx-4 bg-[var(--color-card-bg)] rounded-xl shadow-2xl border border-[var(--color-widget-border)] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-widget-border)]">
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-            {t('settings_title')}
+            Settings
           </h2>
           <button
             onClick={closeSettings}
             className="p-1 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+            aria-label="Close settings"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -779,27 +1036,29 @@ export function SettingsModal() {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-[var(--color-widget-border)]">
+        {/* Tabs - Scrollable on narrow screens */}
+        <div className="flex border-b border-[var(--color-widget-border)] overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'text-[var(--color-accent)] border-b-2 border-[var(--color-accent)] bg-[var(--color-accent)]/5'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
               }`}
             >
-              <span className="mr-2">{tab.icon}</span>
-              {tab.label}
+              <span>{tab.icon}</span>
+              <span>{tab.label || tab.id}</span>
             </button>
           ))}
         </div>
 
-        {/* Content */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
+        {/* Content - Increased height for better usability */}
+        <div className="p-6 max-h-[70vh] overflow-y-auto">
           {activeTab === 'widgets' && <WidgetsTab />}
+          {activeTab === 'clock' && <ClockTab />}
+          {activeTab === 'language' && <LanguageTab />}
           {activeTab === 'stocks' && <StocksTab />}
           {activeTab === 'news' && <NewsTab />}
           {activeTab === 'general' && <GeneralTab />}

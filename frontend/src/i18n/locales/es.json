@@ -1,0 +1,118 @@
+{
+  "settings": {
+    "title": "Configuración",
+    "tabs": {
+      "general": "General",
+      "widgets": "Widgets",
+      "clock": "Reloj y Fecha",
+      "appearance": "Apariencia",
+      "language": "Idioma",
+      "news": "Noticias",
+      "stocks": "Acciones",
+      "pomodoro": "Pomodoro"
+    }
+  },
+  "clock": {
+    "timeFormat": "Formato de Hora",
+    "timeFormat24h": "24 horas",
+    "timeFormat12h": "12 horas (AM/PM)",
+    "timeFormatSystem": "Predeterminado del Sistema",
+    "showSeconds": "Mostrar Segundos",
+    "showDate": "Mostrar Fecha",
+    "dateFormat": "Formato de Fecha",
+    "dateFormatDMY": "DD.MM.AAAA",
+    "dateFormatMDY": "MM/DD/AAAA",
+    "dateFormatYMD": "AAAA-MM-DD",
+    "dateFormatLong": "DD. MMMM AAAA",
+    "dateFormatSystem": "Locale del Sistema",
+    "showWeekday": "Mostrar Día de la Semana",
+    "weekdayFormat": "Formato de Día",
+    "weekdayShort": "Corto (Lun)",
+    "weekdayLong": "Largo (Lunes)",
+    "preview": "Vista Previa"
+  },
+  "appearance": {
+    "backgroundOpacity": "Transparencia del Fondo",
+    "widgetOpacity": "Transparencia de Widgets",
+    "enableBlur": "Efecto Blur",
+    "blurStrength": "Intensidad del Blur",
+    "transparencyNote": "La transparencia funciona completamente en la aplicación de escritorio. En navegadores, el efecto es limitado."
+  },
+  "language": {
+    "locale": "Idioma",
+    "mintyLanguage": "Comentarios de Minty",
+    "followSystem": "Seguir Idioma",
+    "de": "Deutsch",
+    "en": "English",
+    "es": "Español",
+    "sr": "Srpski",
+    "system": "Predeterminado del Sistema"
+  },
+  "minty": {
+    "comments": {
+      "linuxPride": [
+        "Uso Mint, por cierto.",
+        "Mass gengat kernel panic.",
+        "Uptime más largo que tu último Windows sin actualización forzada.",
+        "¿Flatpak o Snap? ...Por favor.",
+        "¡Funciona en mi máquina!",
+        "Sudo hazme un sándwich.",
+        "La nube es solo la computadora de otra persona.",
+        "La documentación es para cobardes. Y gente que quiere dormir.",
+        "Libre como en libertad. Y cerveza."
+      ],
+      "archRoasts": [
+        "Un usuario de Arch habría compilado este dashboard. Y escrito un post de blog sobre ello.",
+        "Arch es genial. Si tienes tiempo.",
+        "Por cierto, yo realmente funciono.",
+        "No uso Arch. Tengo una vida."
+      ],
+      "windowsMac": [
+        "¿Windows Update? No la conozco.",
+        "Un usuario de Mac pagaría 2000€ por este dashboard.",
+        "¿Bluescreen of Death? ¿Es un nuevo álbum?",
+        "¿Cortana? ¿Siri? Soy Minty. No molesto.",
+        "¿Ctrl+Alt+Supr? Prefiero Ctrl+C."
+      ],
+      "cinnamonMint": [
+        "Cinnamon hace todo mejor. 🫚",
+        "GNOME quería quitarme mi barra de tareas. Cinnamon no.",
+        "Mint: Porque Ubuntu se volvió demasiado mainstream.",
+        "Basado en Ubuntu. Mejor que Ubuntu."
+      ],
+      "timeOfDay": {
+        "morning": ["Café... necesito café...", "¿Ya es lunes?"],
+        "forenoon": ["¡Productividad! O al menos fingir.", "Funcionando suave~", "Vamos a por ello."],
+        "afternoon": ["¿Bajón de mediodía? No la conozco. Soy una hoja.", "¡Todo en verde!", "Vibras de tarde."],
+        "evening": ["¿Otra pestaña? ¿En serio?", "Hora de cerrar... ¿o no?", "¿Aún productivo?"],
+        "night": ["¿Aún despierto? Respeto.", "Dormir está sobrevalorado.", "Gang del turno nocturno."],
+        "lateNight": ["Somos el turno nocturno.", "Las mejores ideas vienen de noche. O las peores.", "Los pensamientos de las 3 AM son diferentes."]
+      }
+    },
+    "states": {
+      "healthy": "activo",
+      "highCpu": "activo",
+      "highRam": "hambriento",
+      "highTemp": "caliente"
+    },
+    "alerts": {
+      "highRam": "¡Quedándose sin memoria!",
+      "highTemp": "¡Me estoy calentando! ¡Refrigeración!",
+      "loading": "Minty está despertando..."
+    }
+  },
+  "widgets": {
+    "clock": "Reloj",
+    "systemPet": "Minty",
+    "musicPlayer": "Reproductor de Música",
+    "ambientSound": "Sonidos Ambientales",
+    "upcoming": "Próximos",
+    "rabbitHole": "Rabbit Hole",
+    "news": "Noticias",
+    "weather": "Clima",
+    "calendar": "Calendario",
+    "tasks": "Tareas",
+    "system": "Sistema",
+    "pomodoro": "Pomodoro"
+  }
+}

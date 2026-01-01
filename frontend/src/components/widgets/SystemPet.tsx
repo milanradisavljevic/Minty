@@ -700,7 +700,7 @@ export function SystemPet() {
         }
         @keyframes minty-breathe {
           0%, 100% { transform: scale(1) translateY(0); }
-          50% { transform: scale(1.05) translateY(-2px); }
+          50% { transform: scale(1.08) translateY(-3px); }
         }
         @keyframes warmGlow {
           0%, 100% { filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.6)); }
@@ -717,28 +717,30 @@ export function SystemPet() {
           animation: warmGlow 2s ease-in-out infinite;
         }
         .minty-ambient-rain {
-          filter: hue-rotate(-10deg) brightness(0.9);
+          filter: hue-rotate(-10deg) brightness(0.9) saturate(1.2);
           position: relative;
         }
         .minty-ambient-rain::before {
           content: '💧';
           position: absolute;
-          top: -10px;
+          top: -15px;
           left: 50%;
           transform: translateX(-50%);
-          font-size: 1.5rem;
+          font-size: 1.8rem;
           animation: rainDrop 1.5s ease-in infinite;
-          opacity: 0.7;
+          opacity: 0.8;
+          pointer-events: none;
         }
         .minty-ambient-rain::after {
           content: '💧';
           position: absolute;
-          top: -10px;
+          top: -20px;
           left: 30%;
-          font-size: 1.2rem;
+          font-size: 1.4rem;
           animation: rainDrop 1.8s ease-in infinite;
           animation-delay: 0.5s;
-          opacity: 0.6;
+          opacity: 0.7;
+          pointer-events: none;
         }
       `}</style>
 
