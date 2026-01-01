@@ -1,0 +1,33 @@
+{
+  "name": "ultrawide-dashboard-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Backend for Ultrawide Dashboard",
+  "main": "dist/backend/src/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/backend/src/index.js",
+    "test": "node --import tsx --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "rss-parser": "^3.13.0",
+    "socket.io": "^4.8.1",
+    "systeminformation": "^5.23.5",
+    "yahoo-finance2": "^3.10.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

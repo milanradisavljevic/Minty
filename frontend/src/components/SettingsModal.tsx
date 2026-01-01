@@ -1,0 +1,799 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useSettingsStore, type Language } from '../stores/settingsStore';
+import { useTranslation } from '../i18n';
+import { WIDGET_TITLE_KEYS } from '../constants/widgets';
+import type { NewsFeedConfig } from '../types';
+
+function WidgetsTab() {
+  const { t } = useTranslation();
+  const widgets = useSettingsStore((s) => s.widgets ?? []);
+  const toggleWidget = useSettingsStore((s) => s.toggleWidget);
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-[var(--color-text-secondary)] mb-4">
+        {t('widgets_description')}
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        {widgets.map((widget) => (
+          <label
+            key={widget.id}
+            className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] cursor-pointer hover:border-[var(--color-accent)] transition-colors"
+          >
+            <span className="text-sm text-[var(--color-text-primary)]">
+              {t(WIDGET_TITLE_KEYS[widget.id] || 'widget_tasks')}
+            </span>
+            <div
+              className={`relative w-11 h-6 rounded-full transition-colors ${
+                widget.enabled ? 'bg-[var(--color-accent)]' : 'bg-gray-600'
+              }`}
+              onClick={() => toggleWidget(widget.id)}
+            >
+              <div
+                className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                  widget.enabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </div>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StocksTab() {
+  const { t } = useTranslation();
+  const watchlist = useSettingsStore((s) => s.stocks?.watchlist ?? []);
+  const addStock = useSettingsStore((s) => s.addStock);
+  const removeStock = useSettingsStore((s) => s.removeStock);
+  const updateInterval = useSettingsStore((s) => s.stocks?.updateInterval ?? 120000);
+  const setIntervalMs = useSettingsStore((s) => s.setStockUpdateInterval);
+  const [newSymbol, setNewSymbol] = useState('');
+
+  const handleAdd = () => {
+    if (newSymbol.trim()) {
+      addStock(newSymbol);
+      setNewSymbol('');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[var(--color-text-secondary)]">
+        {t('stocks_description')}
+      </p>
+
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={newSymbol}
+          onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+          placeholder={t('stocks_placeholder')}
+          className="flex-1 px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+        />
+        <button
+          onClick={handleAdd}
+          className="px-4 py-2 rounded-md bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors"
+        >
+          {t('stocks_add')}
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-sm text-[var(--color-text-primary)]">
+          {t('stocks_interval_label')}
+        </label>
+        <input
+          type="number"
+          min={15}
+          max={600}
+          value={Math.round(updateInterval / 1000)}
+          onChange={(e) => setIntervalMs(Number(e.target.value) * 1000)}
+          className="w-32 px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+        />
+        <p className="text-[11px] text-[var(--color-text-secondary)]">
+          {t('stocks_interval_hint')}
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
+        {watchlist.map((symbol) => (
+          <div
+            key={symbol}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)]"
+          >
+            <span className="text-sm text-[var(--color-text-primary)]">{symbol}</span>
+            <button
+              onClick={() => removeStock(symbol)}
+              className="text-[var(--color-text-secondary)] hover:text-[var(--color-error)] transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {watchlist.length === 0 && (
+        <p className="text-sm text-[var(--color-text-secondary)] text-center py-4">
+          {t('stocks_empty_watchlist')}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function NewsTab() {
+  const { t } = useTranslation();
+  const [feeds, setFeeds] = useState<NewsFeedConfig[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [testMessage, setTestMessage] = useState<string | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
+  const [newFeed, setNewFeed] = useState<NewsFeedConfig>({
+    id: '',
+    name: '',
+    url: '',
+    colSpan: 1,
+    icon: '',
+    enabled: true,
+    order: 0,
+  });
+
+  const sortedFeeds = useMemo(
+    () => [...feeds].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [feeds]
+  );
+
+  const clampColSpan = (value?: number) => Math.min(4, Math.max(1, value ?? 1));
+
+  const loadFeeds = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/news/feeds');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setFeeds((data.feeds as NewsFeedConfig[]) || []);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to load feeds', err);
+      setError(err instanceof Error ? err.message : 'Failed to load feeds');
+      setFeeds([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFeeds();
+  }, []);
+
+  const updateFeed = (id: string, updates: Partial<NewsFeedConfig>) => {
+    setFeeds((prev) =>
+      prev.map((feed) => (feed.id === id ? { ...feed, ...updates } : feed))
+    );
+  };
+
+  const reorderFeed = (id: string, direction: 'up' | 'down') => {
+    setFeeds((prev) => {
+      const ordered = [...prev].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      const index = ordered.findIndex((f) => f.id === id);
+      if (index === -1) return prev;
+      const target = direction === 'up' ? index - 1 : index + 1;
+      if (target < 0 || target >= ordered.length) return prev;
+      const [moved] = ordered.splice(index, 1);
+      ordered.splice(target, 0, moved);
+      return ordered.map((f, idx) => ({ ...f, order: idx }));
+    });
+  };
+
+  const removeFeed = (id: string) => {
+    setFeeds((prev) => prev.filter((f) => f.id !== id).map((f, idx) => ({ ...f, order: idx })));
+  };
+
+  const slugify = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || `feed-${Date.now()}`;
+
+  const handleAddFeed = () => {
+    const name = newFeed.name.trim();
+    const url = newFeed.url.trim();
+    if (!name || !url) {
+      setError(t('news_validation_required'));
+      return;
+    }
+
+    const baseId = newFeed.id?.trim() ? slugify(newFeed.id) : slugify(name);
+    let finalId = baseId;
+    let counter = 1;
+    while (feeds.some((f) => f.id === finalId)) {
+      finalId = `${baseId}-${counter++}`;
+    }
+
+    const feed: NewsFeedConfig = {
+      id: finalId,
+      name,
+      url,
+      icon: newFeed.icon?.trim() || name.charAt(0).toUpperCase(),
+      colSpan: clampColSpan(newFeed.colSpan),
+      enabled: newFeed.enabled !== false,
+      order: feeds.length,
+    };
+
+    setFeeds((prev) => [...prev, feed]);
+    setNewFeed({ id: '', name: '', url: '', colSpan: 1, icon: '', enabled: true, order: 0 });
+    setError(null);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    setTestMessage(null);
+    try {
+      const payload = sortedFeeds.map((feed, idx) => ({
+        ...feed,
+        order: idx,
+        colSpan: clampColSpan(feed.colSpan),
+        enabled: feed.enabled !== false,
+      }));
+
+      const hasMissing = payload.some((f) => !f.id || !f.name?.trim() || !f.url?.trim());
+      if (hasMissing) {
+        setError(t('news_validation_required'));
+        setSaving(false);
+        return;
+      }
+
+      const idSet = new Set<string>();
+      for (const f of payload) {
+        if (idSet.has(f.id)) {
+          setError(t('news_validation_duplicate'));
+          setSaving(false);
+          return;
+        }
+        idSet.add(f.id);
+      }
+
+      const res = await fetch('/api/news/feeds', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setFeeds((data.feeds as NewsFeedConfig[]) || payload);
+      setTestMessage(t('news_save_success'));
+    } catch (err) {
+      console.error('Failed to save feeds', err);
+      setError(err instanceof Error ? err.message : 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTest = async () => {
+    setTestMessage(null);
+    setTestError(null);
+    const url = newFeed.url.trim();
+    if (!url) {
+      setTestError(t('news_validation_url'));
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/news/feeds/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setTestMessage(`${t('news_test_success')}: ${data.result?.title || url}`);
+    } catch (err) {
+      console.error('Feed test failed', err);
+      setTestError(err instanceof Error ? err.message : 'Failed to test feed');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="w-6 h-6 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[var(--color-text-secondary)]">
+        {t('news_settings_description')}
+      </p>
+
+      {error && (
+        <div className="p-3 rounded-md bg-[var(--color-error)]/10 border border-[var(--color-error)] text-[var(--color-error)] text-sm">
+          {error}
+        </div>
+      )}
+      {testError && (
+        <div className="p-3 rounded-md bg-[var(--color-error)]/10 border border-[var(--color-error)] text-[var(--color-error)] text-sm">
+          {testError}
+        </div>
+      )}
+      {testMessage && (
+        <div className="p-3 rounded-md bg-[var(--color-success)]/10 border border-[var(--color-success)] text-[var(--color-success)] text-sm">
+          {testMessage}
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {sortedFeeds.map((feed, idx) => (
+          <div
+            key={feed.id}
+            className="p-3 rounded-lg bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] space-y-3"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <input
+                  value={feed.icon || ''}
+                  onChange={(e) => updateFeed(feed.id, { icon: e.target.value })}
+                  className="w-16 px-2 py-1 rounded bg-[var(--color-dashboard-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+                  placeholder="📰"
+                  maxLength={4}
+                />
+                <input
+                  value={feed.name}
+                  onChange={(e) => updateFeed(feed.id, { name: e.target.value })}
+                  className="flex-1 min-w-0 px-3 py-2 rounded bg-[var(--color-dashboard-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+                  placeholder={t('news_feed_name')}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+                  <input
+                    type="checkbox"
+                    checked={feed.enabled !== false}
+                    onChange={(e) => updateFeed(feed.id, { enabled: e.target.checked })}
+                    className="accent-[var(--color-accent)]"
+                  />
+                  {t('news_enabled')}
+                </label>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => reorderFeed(feed.id, 'up')}
+                    disabled={idx === 0}
+                    className="px-2 py-1 rounded border border-[var(--color-widget-border)] text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:opacity-50"
+                    title={t('news_move_up')}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => reorderFeed(feed.id, 'down')}
+                    disabled={idx === sortedFeeds.length - 1}
+                    className="px-2 py-1 rounded border border-[var(--color-widget-border)] text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:opacity-50"
+                    title={t('news_move_down')}
+                  >
+                    ↓
+                  </button>
+                </div>
+                <button
+                  onClick={() => removeFeed(feed.id)}
+                  className="px-2 py-1 rounded border border-[var(--color-widget-border)] text-xs text-[var(--color-error)] hover:border-[var(--color-error)]"
+                  title={t('news_delete')}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-12 gap-3 items-center">
+              <div className="col-span-8">
+                <label className="block text-xs text-[var(--color-text-secondary)] mb-1">
+                  {t('news_feed_url')}
+                </label>
+                <input
+                  value={feed.url}
+                  onChange={(e) => updateFeed(feed.id, { url: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-[var(--color-dashboard-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+                  placeholder="https://example.com/rss"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs text-[var(--color-text-secondary)] mb-1">
+                  {t('news_colspan')}
+                </label>
+                <select
+                  value={clampColSpan(feed.colSpan)}
+                  onChange={(e) => updateFeed(feed.id, { colSpan: clampColSpan(Number(e.target.value)) })}
+                  className="w-full px-2 py-2 rounded bg-[var(--color-dashboard-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+                >
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                  <option value={3}>3</option>
+                  <option value={4}>4</option>
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs text-[var(--color-text-secondary)] mb-1">
+                  {t('news_feed_id')}
+                </label>
+                <div className="px-3 py-2 rounded bg-[var(--color-dashboard-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-secondary)] truncate">
+                  {feed.id}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {sortedFeeds.length === 0 && (
+        <p className="text-sm text-[var(--color-text-secondary)] text-center py-4">
+          {t('news_no_feeds')}
+        </p>
+      )}
+
+      <div className="p-4 rounded-lg border border-dashed border-[var(--color-widget-border)] bg-[var(--color-dashboard-bg)] space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
+            {t('news_add_feed')}
+          </h4>
+          <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={newFeed.enabled !== false}
+                onChange={(e) => setNewFeed((prev) => ({ ...prev, enabled: e.target.checked }))}
+                className="accent-[var(--color-accent)]"
+              />
+              {t('news_enabled')}
+            </label>
+            <label className="flex items-center gap-2">
+              <span>{t('news_colspan')}:</span>
+              <select
+                value={clampColSpan(newFeed.colSpan)}
+                onChange={(e) => setNewFeed((prev) => ({ ...prev, colSpan: clampColSpan(Number(e.target.value)) }))}
+                className="px-2 py-1 rounded bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-xs text-[var(--color-text-primary)]"
+              >
+                <option value={1}>1</option>
+                <option value={2}>2</option>
+                <option value={3}>3</option>
+                <option value={4}>4</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-3">
+          <div className="col-span-4">
+            <label className="block text-xs text-[var(--color-text-secondary)] mb-1">
+              {t('news_feed_name')}
+            </label>
+            <input
+              value={newFeed.name}
+              onChange={(e) => setNewFeed((prev) => ({ ...prev, name: e.target.value }))}
+              className="w-full px-3 py-2 rounded bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+              placeholder={t('news_feed_name')}
+            />
+          </div>
+          <div className="col-span-6">
+            <label className="block text-xs text-[var(--color-text-secondary)] mb-1">
+              {t('news_feed_url')}
+            </label>
+            <input
+              value={newFeed.url}
+              onChange={(e) => setNewFeed((prev) => ({ ...prev, url: e.target.value }))}
+              className="w-full px-3 py-2 rounded bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+              placeholder="https://example.com/rss"
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-xs text-[var(--color-text-secondary)] mb-1">
+              {t('news_feed_icon')}
+            </label>
+            <input
+              value={newFeed.icon || ''}
+              onChange={(e) => setNewFeed((prev) => ({ ...prev, icon: e.target.value }))}
+              className="w-full px-3 py-2 rounded bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+              placeholder="📰"
+              maxLength={4}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleTest}
+            className="px-4 py-2 rounded-md text-sm font-medium transition-colors bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+          >
+            {t('news_test_feed')}
+          </button>
+          <button
+            onClick={handleAddFeed}
+            className="px-4 py-2 rounded-md text-sm font-medium transition-colors bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]"
+          >
+            {t('news_add_feed')}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            saving
+              ? 'bg-[var(--color-widget-bg)] text-[var(--color-text-secondary)] border border-[var(--color-widget-border)]'
+              : 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]'
+          }`}
+        >
+          {saving ? t('news_saving') : t('news_save')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function GeneralTab() {
+  const { t } = useTranslation();
+  const general = useSettingsStore((s) => s.general ?? { theme: 'dark', language: 'de', refreshInterval: 60 });
+  const setTheme = useSettingsStore((s) => s.setTheme);
+  const setLanguage = useSettingsStore((s) => s.setLanguage);
+  const [restarting, setRestarting] = useState(false);
+  const [restartError, setRestartError] = useState<string | null>(null);
+
+  const restartBackend = async () => {
+    try {
+      setRestarting(true);
+      setRestartError(null);
+      const res = await fetch('/api/restart', { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Backend will restart - socket auto-reconnects, no page reload needed
+      // Keep "Restarting..." visible for 3s to indicate the process
+      setTimeout(() => setRestarting(false), 3000);
+    } catch (err) {
+      console.error('Backend restart failed', err);
+      setRestartError(t('restart_failed'));
+      setRestarting(false);
+    }
+  };
+
+  const reloadFrontend = () => {
+    window.location.reload();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+          {t('theme_label')}
+        </label>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setTheme('dark')}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              general.theme === 'dark'
+                ? 'bg-[var(--color-accent)] text-white'
+                : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
+            }`}
+          >
+            {t('theme_dark')}
+          </button>
+          <button
+            onClick={() => setTheme('light')}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              general.theme === 'light'
+                ? 'bg-[var(--color-accent)] text-white'
+                : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
+            }`}
+          >
+            {t('theme_light')}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+          {t('language_label')}
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {(['de', 'en', 'es', 'sr'] as Language[]).map((lang) => (
+            <button
+              key={lang}
+              onClick={() => setLanguage(lang)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                general.language === lang
+                  ? 'bg-[var(--color-accent)] text-white'
+                  : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
+              }`}
+            >
+              {lang === 'de' && t('language_german')}
+              {lang === 'en' && t('language_english')}
+              {lang === 'es' && t('language_spanish')}
+              {lang === 'sr' && t('language_serbo_croatian')}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+          {t('restart_title')}
+        </label>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={restartBackend}
+            disabled={restarting}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors border border-[var(--color-widget-border)] ${
+              restarting
+                ? 'bg-[var(--color-widget-bg)] text-[var(--color-text-secondary)]'
+                : 'bg-[var(--color-error)]/10 text-[var(--color-error)] hover:bg-[var(--color-error)]/20'
+            }`}
+          >
+            {restarting ? t('restart_running') : t('restart_backend')}
+          </button>
+          <button
+            onClick={reloadFrontend}
+            className="px-4 py-2 rounded-md text-sm font-medium transition-colors border border-[var(--color-widget-border)] bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+          >
+            {t('restart_frontend')}
+          </button>
+        </div>
+        {restartError && <div className="text-sm text-[var(--color-error)]">{restartError}</div>}
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          {t('restart_hint')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function PomodoroTab() {
+  const { t } = useTranslation();
+  const pomodoro = useSettingsStore((s) => s.pomodoro ?? { workDuration: 25, breakDuration: 5, longBreakDuration: 15, sessionsBeforeLongBreak: 4 });
+  const setPomodoroSettings = useSettingsStore((s) => s.setPomodoroSettings);
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[var(--color-text-secondary)]">
+        {t('pomodoro_tab_description')}
+      </p>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm text-[var(--color-text-primary)] mb-1">
+            {t('pomodoro_work')}
+          </label>
+          <input
+            type="number"
+            value={pomodoro.workDuration}
+            onChange={(e) => setPomodoroSettings({ workDuration: Number(e.target.value) })}
+            min={1}
+            max={120}
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-[var(--color-text-primary)] mb-1">
+            {t('pomodoro_break')}
+          </label>
+          <input
+            type="number"
+            value={pomodoro.breakDuration}
+            onChange={(e) => setPomodoroSettings({ breakDuration: Number(e.target.value) })}
+            min={1}
+            max={30}
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-[var(--color-text-primary)] mb-1">
+            {t('pomodoro_long_break')}
+          </label>
+          <input
+            type="number"
+            value={pomodoro.longBreakDuration}
+            onChange={(e) => setPomodoroSettings({ longBreakDuration: Number(e.target.value) })}
+            min={1}
+            max={60}
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-[var(--color-text-primary)] mb-1">
+            {t('pomodoro_sessions_until_long')}
+          </label>
+          <input
+            type="number"
+            value={pomodoro.sessionsBeforeLongBreak}
+            onChange={(e) => setPomodoroSettings({ sessionsBeforeLongBreak: Number(e.target.value) })}
+            min={1}
+            max={10}
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SettingsModal() {
+  const { t } = useTranslation();
+  const isOpen = useSettingsStore((s) => s.isOpen);
+  const closeSettings = useSettingsStore((s) => s.closeSettings);
+  const activeTab = useSettingsStore((s) => s.activeTab);
+  const setActiveTab = useSettingsStore((s) => s.setActiveTab);
+
+  if (!isOpen) return null;
+
+  const tabs = [
+    { id: 'widgets' as const, label: t('tab_widgets'), icon: '🧩' },
+    { id: 'stocks' as const, label: t('tab_stocks'), icon: '📈' },
+    { id: 'news' as const, label: t('tab_news'), icon: '📰' },
+    { id: 'pomodoro' as const, label: t('tab_pomodoro'), icon: '🍅' },
+    { id: 'general' as const, label: t('tab_general'), icon: '⚙️' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={closeSettings}
+      />
+
+      {/* Modal */}
+      <div className="relative w-full max-w-2xl mx-4 bg-[var(--color-card-bg)] rounded-xl shadow-2xl border border-[var(--color-widget-border)] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-widget-border)]">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+            {t('settings_title')}
+          </h2>
+          <button
+            onClick={closeSettings}
+            className="p-1 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-[var(--color-widget-border)]">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'text-[var(--color-accent)] border-b-2 border-[var(--color-accent)] bg-[var(--color-accent)]/5'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+              }`}
+            >
+              <span className="mr-2">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="p-6 max-h-[60vh] overflow-y-auto">
+          {activeTab === 'widgets' && <WidgetsTab />}
+          {activeTab === 'stocks' && <StocksTab />}
+          {activeTab === 'news' && <NewsTab />}
+          {activeTab === 'general' && <GeneralTab />}
+          {activeTab === 'pomodoro' && <PomodoroTab />}
+        </div>
+      </div>
+    </div>
+  );
+}

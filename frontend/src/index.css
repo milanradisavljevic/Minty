@@ -1,0 +1,234 @@
+@import "tailwindcss";
+
+@theme {
+  --breakpoint-ultrawide: 5120px;
+
+  --color-dashboard-bg: #0f0f0f;
+  --color-widget-bg: #1a1a1a;
+  --color-widget-border: #2a2a2a;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #a0a0a0;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-error: #ef4444;
+  --color-card-bg: #121212;
+}
+
+:root.theme-dark {
+  --color-dashboard-bg: #0f0f0f;
+  --color-widget-bg: #1a1a1a;
+  --color-widget-border: #2a2a2a;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #a0a0a0;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-error: #ef4444;
+  --color-card-bg: #121212;
+}
+
+:root.theme-light {
+  --color-dashboard-bg: #f6f7fb;
+  --color-widget-bg: #ffffff;
+  --color-widget-border: #dbe0ea;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --color-card-bg: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-dashboard-bg);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* react-grid-layout styles */
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform;
+}
+
+.react-grid-item.resizing {
+  z-index: 1;
+  will-change: width, height;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
+}
+
+.react-grid-item.dropping {
+  visibility: hidden;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: var(--color-accent);
+  opacity: 0.2;
+  transition-duration: 100ms;
+  z-index: 2;
+  border-radius: 0.5rem;
+}
+
+.react-grid-item > .react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+}
+
+.react-grid-item > .react-resizable-handle::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--color-text-secondary);
+  border-bottom: 2px solid var(--color-text-secondary);
+  opacity: 0.4;
+}
+
+.react-grid-item:hover > .react-resizable-handle::after {
+  opacity: 1;
+}
+
+.react-resizable-handle-se {
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-widget-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-widget-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* Minty the pet */
+.pet-blob {
+  border-radius: 45% 55% 50% 50%;
+  box-shadow: 0 12px 30px rgba(59, 130, 246, 0.25);
+  animation: pet-breathe 4s ease-in-out infinite;
+}
+
+.pet-eye {
+  width: 14px;
+  height: 20px;
+  background: #0f0f0f;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.pet-eye::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
+}
+
+.blink {
+  animation: pet-blink 6s infinite;
+}
+
+.pet-mouth-smile {
+  border-radius: 0 0 50% 50%;
+}
+.pet-mouth-flat {
+  border-radius: 9999px;
+}
+.pet-mouth-frown {
+  border-radius: 50% 50% 0 0;
+}
+
+.bubble-pop {
+  animation: pop-in 0.6s ease;
+}
+
+@keyframes pet-breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@keyframes pet-blink {
+  0%, 88%, 92%, 100% {
+    transform: scaleY(1);
+  }
+  90%, 94% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Minty breathing animation */
+@keyframes minty-breathe {
+  0%, 100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.05) translateY(-2px);
+  }
+}

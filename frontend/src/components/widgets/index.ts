@@ -1,0 +1,13 @@
+export { ClockWidget } from './ClockWidget';
+export { CalendarWidget } from './CalendarWidget';
+export { SystemWidget } from './SystemWidget';
+export { SystemPet } from './SystemPet';
+export { TasksWidget } from './TasksWidget';
+export { WeatherWidget } from './WeatherWidget';
+export { NewsWidget } from './NewsWidget';
+export { WidgetWrapper } from './WidgetWrapper';
+export { AmbientSoundWidget } from './AmbientSoundWidget';
+export { UpcomingWidget } from './UpcomingWidget';
+export { RabbitHoleWidget } from './RabbitHoleWidget';
+export { MusicPlayerWidget } from './MusicPlayerWidget';
+export { PomodoroWidget } from './PomodoroWidget';
