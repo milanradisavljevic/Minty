@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import type { CalendarEvent } from '../types';
 import { getLocale, useTranslation } from '../i18n';
+import { useSettingsStore } from '../stores/settingsStore';
 
 export function TimelineBar() {
   const { language, t } = useTranslation();
   const locale = getLocale(language);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const mementoEnabled = useSettingsStore((s) => s.general?.mementoMoriEnabled ?? true);
 
   // Update time every minute
   useEffect(() => {
@@ -193,7 +195,7 @@ export function TimelineBar() {
       </div>
 
       {/* Bottom info bar */}
-      <div className="h-5 px-4 flex items-center justify-between border-t border-[var(--color-widget-border)]/50 bg-[var(--color-dashboard-bg)]/50">
+      <div className="h-5 px-4 flex items-center justify-between border-t border-[var(--color-widget-border)]/50 bg-[var(--color-dashboard-bg)]/50 relative">
         {/* Date */}
         <span className="text-[10px] text-[var(--color-text-secondary)]">
           {currentTime.toLocaleDateString(locale, {
@@ -213,6 +215,13 @@ export function TimelineBar() {
             {remainingHours}h {remainingMins}m {t('timeline_remaining')}
           </span>
         </div>
+
+        {mementoEnabled && (
+          <span className="memento-mori text-[10px] absolute left-1/2 -translate-x-1/2 bottom-0.5">
+            <span role="img" aria-hidden="true">💀</span>
+            <span>{t('memento_mori')}</span>
+          </span>
+        )}
       </div>
     </div>
   );

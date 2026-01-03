@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { ComponentType } from 'react';
 import GridLayout from 'react-grid-layout';
 import type * as RGL from 'react-grid-layout';
@@ -11,6 +11,7 @@ import { SettingsModal } from './SettingsModal';
 import { WidgetContextMenu } from './WidgetContextMenu';
 import { useTranslation } from '../i18n';
 import { WIDGET_TITLE_KEYS } from '../constants/widgets';
+import { useLayoutStore, layoutCols, layoutBreakpoints, type LayoutProfile, defaultLayouts, profileScale, layoutTargetRows } from '../stores/layoutStore';
 import {
   ClockWidget,
   CalendarWidget,
@@ -68,6 +69,10 @@ export function Dashboard() {
   const widgetSettings = useSettingsStore((state) => state.widgets ?? []);
   const generalTheme = useSettingsStore((state) => state.general?.theme ?? 'dark');
   const appearance = useSettingsStore((state) => state.appearance ?? { backgroundOpacity: 100, widgetOpacity: 100, transparencyEnabled: true, enableBlur: false, blurStrength: 10 });
+  const layoutMode = useLayoutStore((s) => s.mode);
+  const manualProfile = useLayoutStore((s) => s.manualProfile);
+  const saveProfileLayout = useLayoutStore((s) => s.saveLayout);
+  const ensureProfileLayout = useLayoutStore((s) => s.ensureProfileLayout);
 
   // Window dimensions for responsive grid
   const [dimensions, setDimensions] = useState({
@@ -76,6 +81,13 @@ export function Dashboard() {
   });
   const [loadingConfig, setLoadingConfig] = useState(true);
   const saveTimer = useRef<number | null>(null);
+  const currentProfile = useMemo<LayoutProfile>(() => {
+    const width = dimensions.width;
+    if (layoutMode === 'manual') return manualProfile;
+    if (width >= layoutBreakpoints.ultrawide) return 'ultrawide';
+    if (width >= layoutBreakpoints.standard) return 'standard';
+    return 'compact';
+  }, [dimensions.width, layoutMode, manualProfile]);
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{ widgetId: string; x: number; y: number } | null>(null);
@@ -144,6 +156,7 @@ export function Dashboard() {
     (newLayout: RGL.Layout[]) => {
       const normalizedLayout = newLayout.map((item) => ({ ...item })) as unknown as WidgetLayout[];
       setLayouts(normalizedLayout);
+      saveProfileLayout(currentProfile, normalizedLayout);
       // Debounce saving to backend to avoid spamming while dragging
       if (saveTimer.current) {
         window.clearTimeout(saveTimer.current);
@@ -152,15 +165,22 @@ export function Dashboard() {
         persistDashboard(normalizedLayout);
       }, 500);
     },
-    [setLayouts, persistDashboard]
+    [setLayouts, persistDashboard, saveProfileLayout, currentProfile]
   );
 
   // Calculate grid parameters accounting for ticker and timeline
-  const cols = 6;
+  const profileScaleValue = profileScale[currentProfile] ?? 1;
+  const cols = layoutCols[currentProfile];
   const availableHeight = dimensions.height - TICKER_HEIGHT - TIMELINE_HEIGHT - CONTROL_BAR_HEIGHT - GRID_PADDING * 2;
-  const maxRow = layouts.length > 0 ? Math.max(...layouts.map((l) => l.y + l.h)) : 2;
-  const rowHeight = Math.max(120, Math.floor(availableHeight / Math.max(2, maxRow))); // adapt to rows
-  const margin: [number, number] = [16, 16];
+  const baseRowHeight = currentProfile === 'compact' ? 90 : currentProfile === 'standard' ? 120 : 130;
+  const scaledBaseRowHeight = Math.round(baseRowHeight * profileScaleValue);
+  const minRowHeight = Math.round(scaledBaseRowHeight * 0.6); // allow shrinking, never upscale past base
+  const targetRows = layoutTargetRows[currentProfile] ?? 10;
+  const computedRowHeight = Math.floor(availableHeight / targetRows);
+  const rowHeight = Math.max(minRowHeight, Math.min(scaledBaseRowHeight, computedRowHeight));
+  const baseMargin = currentProfile === 'compact' ? 10 : currentProfile === 'standard' ? 14 : 16;
+  const marginValue = Math.max(8, Math.round(baseMargin * profileScaleValue));
+  const margin: [number, number] = [marginValue, marginValue];
   const GridLayoutComponent = GridLayout as unknown as ComponentType<any>;
 
   // Ensure widgets from settings are present in dashboard store/layout
@@ -228,22 +248,66 @@ export function Dashboard() {
     const transparencyEnabled = appearance.transparencyEnabled !== false;
     const bgOpacity = transparencyEnabled ? clamp01(appearance.backgroundOpacity / 100) : 1;
     const widgetOpacity = transparencyEnabled ? clamp01(appearance.widgetOpacity / 100) : 1;
+    const profileScaleValue = profileScale[currentProfile] ?? 1;
 
     root.style.setProperty('--transparency-enabled', transparencyEnabled ? '1' : '0');
     root.style.setProperty('--bg-opacity', bgOpacity.toString());
     root.style.setProperty('--widget-opacity', widgetOpacity.toString());
+    root.style.setProperty('--profile-scale', profileScaleValue.toString());
+    // Adjust base font size so rem-based UI scales with profile
+    root.style.fontSize = `${16 * profileScaleValue}px`;
 
     // Set body/html background based on transparency toggle
     // When OFF: use opaque theme color; when ON: transparent for wallpaper shine-through
     const bgColor = transparencyEnabled ? 'transparent' : 'var(--color-dashboard-bg)';
     document.body.style.backgroundColor = bgColor;
     root.style.backgroundColor = bgColor;
-  }, [appearance.backgroundOpacity, appearance.widgetOpacity, appearance.transparencyEnabled]);
+  }, [appearance.backgroundOpacity, appearance.widgetOpacity, appearance.transparencyEnabled, currentProfile]);
 
   const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
   const transparencyEnabled = appearance.transparencyEnabled !== false;
   const bgOpacity = transparencyEnabled ? clamp01(appearance.backgroundOpacity / 100) : 1;
   const widgetOpacity = transparencyEnabled ? clamp01(appearance.widgetOpacity / 100) : 1;
+
+  const syncProfileLayouts = useCallback(() => {
+    const widgetIds = new Set(widgets.map((w) => w.id));
+    const defaultsForProfile = defaultLayouts[currentProfile] ?? [];
+    const baseLayout = ensureProfileLayout(currentProfile);
+    const filtered = baseLayout.filter((l) => widgetIds.has(l.i));
+
+    const missing = widgets
+      .filter((w) => !filtered.find((l) => l.i === w.id))
+      .map((w, idx) => {
+        const fallback = defaultsForProfile.find((d) => d.i === w.id);
+        if (fallback) return { ...fallback };
+        const nextY = filtered.length > 0 ? Math.max(...filtered.map((l) => l.y + l.h)) : 0;
+        return { i: w.id, x: 0, y: nextY + idx, w: 2, h: 2, minW: 1, minH: 1 };
+      });
+
+    const nextLayout = [...filtered, ...missing];
+
+  const differs =
+      nextLayout.length !== layouts.length ||
+      nextLayout.some((nl) => {
+        const existing = layouts.find((l) => l.i === nl.i);
+        return (
+          !existing ||
+          existing.x !== nl.x ||
+          existing.y !== nl.y ||
+          existing.w !== nl.w ||
+          existing.h !== nl.h
+        );
+      });
+
+    if (differs) {
+      setLayouts(nextLayout);
+      saveProfileLayout(currentProfile, nextLayout);
+    }
+  }, [widgets, layouts, currentProfile, ensureProfileLayout, setLayouts, saveProfileLayout]);
+
+  useEffect(() => {
+    syncProfileLayouts();
+  }, [syncProfileLayouts]);
 
   return (
     <div
@@ -252,6 +316,7 @@ export function Dashboard() {
         ['--bg-opacity' as string]: bgOpacity,
         ['--widget-opacity' as string]: widgetOpacity,
         ['--transparency-enabled' as string]: transparencyEnabled ? 1 : 0,
+        ['--profile-scale' as string]: profileScaleValue,
         backgroundColor: 'rgba(0,0,0,0)',
       }}
     >

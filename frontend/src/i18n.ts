@@ -1,7 +1,13 @@
 import { useSettingsStore } from './stores/settingsStore';
 import type { Language } from './stores/settingsStore';
 
-const baseTranslations = {
+type TranslationValue = string | TranslationDict;
+interface TranslationDict {
+  [key: string]: TranslationValue;
+}
+export type TranslationKey = string;
+
+const baseTranslations: TranslationDict = {
   settings_title: 'Einstellungen',
   tab_widgets: 'Widgets',
   tab_stocks: 'Aktien',
@@ -71,6 +77,32 @@ const baseTranslations = {
   loading_config: 'Konfiguration wird geladen...',
   timeline_of_day: 'des Tages',
   timeline_remaining: 'verbleibend',
+  memento_mori: 'Memento Mori',
+  memento_mori_toggle: 'Memento Mori anzeigen',
+  memento_mori_hint: 'Zeigt einen kleinen Reminder am Ende der Tagesleiste.',
+  clock_size_label: 'Uhrgröße',
+  layout_mode_label: 'Layout-Modus',
+  layout_mode_auto: 'Auto',
+  layout_mode_manual: 'Manuell',
+  layout_mode_auto_hint: 'Automatische Erkennung aktiv ({profile})',
+  layout_mode_manual_hint: 'Wähle ein Layout-Profil unabhängig von der Bildschirmbreite.',
+  layout_profile_label: 'Layout-Profil',
+  layout_profile_compact: 'Kompakt',
+  layout_profile_standard: 'Standard',
+  layout_profile_ultrawide: 'Ultrawide',
+  rabbitHole: {
+    title: 'Rabbit Hole',
+    button: 'Ins Rabbit Hole springen',
+    description: 'Klicke auf den Button um in den Rabbit Hole zu springen!',
+    loading: 'Lade zufälligen Artikel...',
+    error: 'Konnte keinen Artikel laden',
+    history: 'Verlauf',
+    historyEmpty: 'Kein Verlauf vorhanden',
+    historyClear: 'Verlauf löschen',
+    readMore: 'Mehr lesen',
+    noDescription: 'Keine Beschreibung verfügbar.',
+    unknownTitle: 'Unbekannt',
+  },
   system_core: 'Kern',
   system_download: 'Download',
   system_upload: 'Upload',
@@ -194,9 +226,7 @@ const baseTranslations = {
   transparency_widget_hint: '0% = komplett durchsichtig, 100% = voll opak',
 };
 
-export type TranslationKey = keyof typeof baseTranslations;
-
-const translations: Record<Language, Partial<Record<TranslationKey, string>>> = {
+const translations: Record<Language, Partial<TranslationDict>> = {
   de: baseTranslations,
   en: {
     settings_title: 'Settings',
@@ -381,6 +411,19 @@ const translations: Record<Language, Partial<Record<TranslationKey, string>>> = 
     restart_hint: 'Restarts the server process and reloads the page.',
     widget_pin: 'Pin',
     widget_unpin: 'Unpin',
+    clock_size_label: 'Clock size',
+    memento_mori: 'Memento Mori',
+    memento_mori_toggle: 'Show "Memento Mori"',
+    memento_mori_hint: 'Adds a small reminder at the end of the timeline.',
+    layout_mode_label: 'Layout mode',
+    layout_mode_auto: 'Auto',
+    layout_mode_manual: 'Manual',
+    layout_mode_auto_hint: 'Auto-detected ({profile})',
+    layout_mode_manual_hint: 'Manually choose a layout profile regardless of screen width.',
+    layout_profile_label: 'Layout profile',
+    layout_profile_compact: 'Compact',
+    layout_profile_standard: 'Standard',
+    layout_profile_ultrawide: 'Ultrawide',
     transparency_mode_title: 'Transparency Mode',
     transparency_mode_hint: 'Turn off for fully opaque widgets/background. Turn on for real alpha transparency.',
     transparency_on: 'On',
@@ -389,6 +432,19 @@ const translations: Record<Language, Partial<Record<TranslationKey, string>>> = 
     transparency_widget_title: 'Widget Transparency',
     transparency_widget_hint: '0% = fully transparent widgets, 100% = fully opaque',
     transparency_title: 'Background Transparency',
+    rabbitHole: {
+      title: 'Rabbit Hole',
+      button: 'Jump into a Rabbit Hole',
+      description: 'Click the button to jump into the Rabbit Hole!',
+      loading: 'Loading random article...',
+      error: 'Could not load article',
+      history: 'History',
+      historyEmpty: 'No history yet',
+      historyClear: 'Clear history',
+      readMore: 'Read more',
+      noDescription: 'No description available.',
+      unknownTitle: 'Unknown',
+    },
   },
   es: {
     settings_title: 'Ajustes',
@@ -573,6 +629,19 @@ const translations: Record<Language, Partial<Record<TranslationKey, string>>> = 
     restart_hint: 'Reinicia el proceso del servidor y recarga la página.',
     widget_pin: 'Fijar',
     widget_unpin: 'Soltar',
+    clock_size_label: 'Tamaño del reloj',
+    memento_mori: 'Memento Mori',
+    memento_mori_toggle: 'Mostrar "Memento Mori"',
+    memento_mori_hint: 'Añade un recordatorio al final de la barra del día.',
+    layout_mode_label: 'Modo de diseño',
+    layout_mode_auto: 'Auto',
+    layout_mode_manual: 'Manual',
+    layout_mode_auto_hint: 'Detección automática ({profile})',
+    layout_mode_manual_hint: 'Elige un perfil de diseño sin depender del ancho de pantalla.',
+    layout_profile_label: 'Perfil de diseño',
+    layout_profile_compact: 'Compacto',
+    layout_profile_standard: 'Estándar',
+    layout_profile_ultrawide: 'Ultrawide',
     transparency_mode_title: 'Modo de transparencia',
     transparency_mode_hint: 'Apágalo para opacidad total. Enciéndelo para transparencia real con alpha.',
     transparency_on: 'Activado',
@@ -580,6 +649,19 @@ const translations: Record<Language, Partial<Record<TranslationKey, string>>> = 
     transparency_hint: '0% = totalmente transparente, 100% = totalmente opaco',
     transparency_widget_title: 'Transparencia de widgets',
     transparency_widget_hint: '0% = widgets totalmente transparentes, 100% = opacos',
+    rabbitHole: {
+      title: 'Madriguera',
+      button: 'Saltar a la madriguera',
+      description: '¡Haz clic para descubrir algo nuevo!',
+      loading: 'Cargando artículo...',
+      error: 'No se pudo cargar el artículo',
+      history: 'Historial',
+      historyEmpty: 'Sin historial todavía',
+      historyClear: 'Borrar historial',
+      readMore: 'Leer más',
+      noDescription: 'No hay descripción disponible.',
+      unknownTitle: 'Desconocido',
+    },
   },
   sr: {
     settings_title: 'Postavke',
@@ -764,6 +846,19 @@ const translations: Record<Language, Partial<Record<TranslationKey, string>>> = 
     restart_hint: 'Restartuje serverski proces i osvežava stranicu.',
     widget_pin: 'Zakači',
     widget_unpin: 'Otkači',
+    clock_size_label: 'Veličina sata',
+    memento_mori: 'Memento Mori',
+    memento_mori_toggle: 'Prikaži "Memento Mori"',
+    memento_mori_hint: 'Dodaje mali podsetnik na kraj dnevne linije.',
+    layout_mode_label: 'Režim rasporeda',
+    layout_mode_auto: 'Auto',
+    layout_mode_manual: 'Ručno',
+    layout_mode_auto_hint: 'Automatska detekcija ({profile})',
+    layout_mode_manual_hint: 'Ručno izaberi profil rasporeda bez obzira na širinu ekrana.',
+    layout_profile_label: 'Profil rasporeda',
+    layout_profile_compact: 'Kompakt',
+    layout_profile_standard: 'Standard',
+    layout_profile_ultrawide: 'Ultrawide',
     transparency_mode_title: 'Režim prozirnosti',
     transparency_mode_hint: 'Isključi za punu neprozirnost. Uključi za pravu alpha prozirnost.',
     transparency_on: 'Uključeno',
@@ -771,11 +866,37 @@ const translations: Record<Language, Partial<Record<TranslationKey, string>>> = 
     transparency_hint: '0% = potpuno transparentno, 100% = potpuno neprozirno',
     transparency_widget_title: 'Transparentnost widgeta',
     transparency_widget_hint: '0% = potpuno prozirni widgeti, 100% = potpuno neprozirni',
+    rabbitHole: {
+      title: 'Zečja rupa',
+      button: 'Skoči u zečju rupu',
+      description: 'Klikni da otkriješ nešto novo!',
+      loading: 'Učitavanje članka...',
+      error: 'Nije moguće učitati članak',
+      history: 'Istorija',
+      historyEmpty: 'Još nema istorije',
+      historyClear: 'Obriši istoriju',
+      readMore: 'Pročitaj više',
+      noDescription: 'Nema opisa.',
+      unknownTitle: 'Nepoznato',
+    },
   },
 };
 
+function getNested(dict: TranslationDict | undefined, path: string): TranslationValue | undefined {
+  if (!dict) return undefined;
+  return path.split('.').reduce<TranslationValue | undefined>((acc, part) => {
+    if (acc && typeof acc === 'object' && part in acc) {
+      return (acc as TranslationDict)[part];
+    }
+    return undefined;
+  }, dict);
+}
+
 export function translate(language: Language, key: TranslationKey): string {
-  return translations[language]?.[key] ?? baseTranslations[key];
+  const fromLocale = getNested(translations[language] as TranslationDict, key);
+  const fromBase = getNested(baseTranslations, key);
+  const value = fromLocale ?? fromBase;
+  return typeof value === 'string' ? value : key;
 }
 
 export function useTranslation() {
@@ -793,7 +914,7 @@ export function getLocale(language: Language): string {
     case 'es':
       return 'es-ES';
     case 'sr':
-      return 'sr-RS';
+      return 'sr-Latn-RS';
     default:
       return 'de-DE';
   }

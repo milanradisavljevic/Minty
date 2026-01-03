@@ -640,16 +640,11 @@ export function SystemPet() {
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const width = entry.contentRect.width;
-        console.log('[Minty] Container width:', width);
-
         if (width < 250) {
-          console.log('[Minty] Setting size: small');
           setMintySize('small');
         } else if (width < 400) {
-          console.log('[Minty] Setting size: medium');
           setMintySize('medium');
         } else {
-          console.log('[Minty] Setting size: large');
           setMintySize('large');
         }
       }
@@ -895,7 +890,7 @@ export function SystemPet() {
           <div
             className={`cursor-pointer hover:scale-105 transition-all duration-300 ${
               mintySize === 'small' ? 'w-20 h-20' : mintySize === 'large' ? 'w-44 h-44' : 'w-32 h-32'
-            } ${hasFireplace ? 'minty-ambient-fireplace' : ''} ${hasRain ? 'minty-ambient-rain' : ''}`}
+            } max-w-full max-h-full ${hasFireplace ? 'minty-ambient-fireplace' : ''} ${hasRain ? 'minty-ambient-rain' : ''}`}
             onClick={handleMintyClick}
             title="Klicke für neuen Spruch"
           >

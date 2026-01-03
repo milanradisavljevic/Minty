@@ -1,0 +1,32 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="leafGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ade80" />
+      <stop offset="50%" stop-color="#22c55e" />
+      <stop offset="100%" stop-color="#16a34a" />
+    </linearGradient>
+  </defs>
+
+  <path
+    d="M50 10 Q75 20 80 45 Q82 60 70 75 Q60 85 50 88 Q40 85 30 75 Q18 60 20 45 Q25 20 50 10"
+    fill="url(#leafGradient)"
+  />
+
+  <path d="M50 15 L50 80" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" opacity="0.5" />
+
+  <g opacity="0.5">
+    <path d="M50 25 L50 45 M50 35 L60 35 L60 50 M50 35 L40 35 L40 50" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" />
+    <circle cx="50" cy="25" r="2" fill="#22c55e" />
+    <circle cx="60" cy="35" r="2" fill="#22c55e" />
+    <circle cx="40" cy="35" r="2" fill="#22c55e" />
+  </g>
+
+  <ellipse cx="42" cy="40" rx="4" ry="5" fill="white" />
+  <ellipse cx="58" cy="40" rx="4" ry="5" fill="white" />
+  <circle cx="43" cy="40" r="2.5" fill="#333" />
+  <circle cx="59" cy="40" r="2.5" fill="#333" />
+  <circle cx="44" cy="39" r="1" fill="white" />
+  <circle cx="60" cy="39" r="1" fill="white" />
+
+  <path d="M45 50 Q50 55 55 50" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" />
+</svg>

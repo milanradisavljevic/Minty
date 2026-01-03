@@ -44,6 +44,32 @@
     "transparency_title": "Prozirnost pozadine",
     "transparency_hint": "0% = potpuno prozirno, 100% = potpuno neprozirno"
   },
+  "clock_size_label": "Veličina sata",
+  "layout_mode_label": "Režim rasporeda",
+  "layout_mode_auto": "Auto",
+  "layout_mode_manual": "Ručno",
+  "layout_mode_auto_hint": "Automatska detekcija ({profile})",
+  "layout_mode_manual_hint": "Ručno izaberi profil rasporeda bez obzira na širinu ekrana.",
+  "layout_profile_label": "Profil rasporeda",
+  "layout_profile_compact": "Kompakt",
+  "layout_profile_standard": "Standard",
+  "layout_profile_ultrawide": "Ultrawide",
+  "memento_mori": "Memento Mori",
+  "memento_mori_toggle": "Prikaži \"Memento Mori\"",
+  "memento_mori_hint": "Dodaje mali podsetnik na kraj dnevne linije.",
+  "rabbitHole": {
+    "title": "Zečja rupa",
+    "button": "Skoči u zečju rupu",
+    "description": "Klikni da otkriješ nešto novo!",
+    "loading": "Učitavanje članka...",
+    "error": "Nije moguće učitati članak",
+    "history": "Istorija",
+    "historyEmpty": "Još nema istorije",
+    "historyClear": "Obriši istoriju",
+    "readMore": "Pročitaj više",
+    "noDescription": "Nema opisa.",
+    "unknownTitle": "Nepoznato"
+  },
   "language": {
     "locale": "Jezik",
     "mintyLanguage": "Minty Komentari",
@@ -99,7 +125,7 @@
       "timeOfDay": {
         "morning": ["Kafa... treba mi kafa...", "Već je ponedeljak?"],
         "forenoon": ["Produktivnost! Ili bar pretvaranje.", "Radi glatko~", "Hajde da počnemo."],
-        "afternoon": ["Poslepodnevni pad? Ne poznajem. Ja sam list.", "Sve u zelenom!", "Popodnevne vibre."],
+        "afternoon": ["Poslepodnevni pad? Ne poznajem. Ja sam list.", "Sve u zelenom!", "Lagano popodne."],
         "evening": ["Još jedan tab? Stvarno?", "Vreme zatvaranja... ili?", "Još produktivan?"],
         "night": ["Još si budan? Respekt.", "Spavanje je precenjeno.", "Noćna smena ekipa."],
         "lateNight": ["Mi smo noćna smena.", "Najbolje ideje dolaze noću. Ili najgore.", "Misli u 3 ujutru pogađaju drugačije."]

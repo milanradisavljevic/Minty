@@ -1,12 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { WidgetWrapper } from './WidgetWrapper';
 import type { NewsFeed, NewsItem } from '../../types';
 import { getLocale, useTranslation } from '../../i18n';
 
 // Single news column component
-function NewsColumn({ feed, formatDate, emptyLabel }: { feed: NewsFeed; formatDate: (date: string) => string; emptyLabel: string }) {
+function NewsColumn({
+  feed,
+  formatDate,
+  emptyLabel,
+  columns,
+}: {
+  feed: NewsFeed;
+  formatDate: (date: string) => string;
+  emptyLabel: string;
+  columns: number;
+}) {
   const clamped = Math.min(4, Math.max(1, feed.colSpan ?? 1));
-  const span = clamped * 3; // Map 1..4 -> span 3..12 on 12-col grid
+  const span = Math.min(columns, Math.max(1, Math.round((columns / 4) * clamped)));
   const icon = feed.icon || (feed.name ? feed.name.charAt(0).toUpperCase() : '📰');
   return (
     <div className="flex flex-col h-full min-w-0" style={{ gridColumn: `span ${span}` }}>
@@ -73,10 +83,12 @@ export function NewsWidget() {
     () => new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }),
     [locale]
   );
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [feeds, setFeeds] = useState<NewsFeed[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [columns, setColumns] = useState(4);
 
   useEffect(() => {
     let isMounted = true;
@@ -110,6 +122,20 @@ export function NewsWidget() {
       isMounted = false;
       clearInterval(interval);
     };
+  }, []);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const node = containerRef.current;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0].contentRect.width;
+      if (width < 500) setColumns(1);
+      else if (width < 800) setColumns(2);
+      else if (width < 1100) setColumns(3);
+      else setColumns(4);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
   }, []);
 
   const formatDate = (dateStr: string) => {
@@ -155,13 +181,18 @@ export function NewsWidget() {
 
   return (
     <WidgetWrapper titleKey="widget_news" noPadding>
-      <div className="h-full grid grid-cols-12 gap-3">
+      <div
+        ref={containerRef}
+        className="h-full grid"
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: '12px' }}
+      >
         {feeds.map((feed) => (
           <NewsColumn
             key={feed.id}
             feed={feed}
             formatDate={formatDate}
             emptyLabel={t('news_empty')}
+            columns={columns}
           />
         ))}
       </div>

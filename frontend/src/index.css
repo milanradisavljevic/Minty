@@ -19,6 +19,8 @@
   --transparency-enabled: 1;
   --bg-opacity: 1;
   --widget-opacity: 1;
+  /* Layout scaling per profile */
+  --profile-scale: 1;
 }
 
 :root.theme-dark {
@@ -73,6 +75,19 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.widget-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.widget-container > * {
+  flex: 1;
+  min-height: 0;
+}
+
 /* Transparency support for dashboard background */
 .bg-\\[var\\(--color-dashboard-bg\\)\\] {
   background-color: rgba(15, 15, 15, calc(var(--bg-opacity) * var(--transparency-enabled) + (1 - var(--transparency-enabled)))) !important;
@@ -114,6 +129,20 @@ body {
 
 :root.theme-light .border-\\[var\\(--color-widget-border\\)\\] {
   border-color: rgba(219, 224, 234, calc(var(--widget-opacity) * var(--transparency-enabled) + (1 - var(--transparency-enabled)))) !important;
+}
+
+.memento-mori {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.memento-mori .skull-icon {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
 }
 
 /* Interactive elements - only affect those with widget-bg class, not all buttons */

@@ -1,20 +1,27 @@
 # Minty Dashboard
 
-A personal dashboard for ultrawide displays (tested at 5120x1440) with live widgets and the Minty system companion.
+Minty Dashboard is a desktop dashboard for ultrawide displays (tested at 5120×1440) with live widgets, transparency, and the Minty companion.
 
-## Highlights
+## What’s new in 1.1
+- Layout profiles (compact / standard / ultrawide) with scaling and per-profile layouts.
+- Clamped row heights so widgets do not balloon when only a few are enabled.
+- Real transparency controls (background + widget alpha) with a global toggle.
+- Memento Mori footer placement refinements and centered layout.
+- Icon unified to `minty-icon.png` for packaged builds (.AppImage and .deb).
+
+## Features
 - Minty companion with breathing/blinking animations, time-of-day mood, and multi-language quips.
-- Live system metrics (CPU, RAM, disk, network) with sparklines.
-- News wall (4 feeds), weather, tasks/calendar, Pomodoro timer.
-- Ambient sounds (rain, forest, fireplace, ocean, etc.).
+- System metrics (CPU, RAM, disk, network) with sparklines.
+- News wall (multiple feeds), weather, tasks/calendar, Pomodoro timer.
+- Ambient sounds (rain, forest, fireplace, ocean, wind, etc.).
 - Optional stock ticker (backend + frontend flags).
-- Transparency mode with separate background and widget alpha controls, plus blur.
+- Transparency mode with separate background and widget opacity plus blur.
 
 ## Requirements
-- Node.js 18+
+- Node.js 18+ (build); packaged app ships with its own runtime.
 - npm
 
-## Installation
+## Install dependencies
 ```bash
 npm install
 cd backend && npm install
@@ -23,17 +30,15 @@ cd ../frontend && npm install
 
 ## Development
 ```bash
-# Terminal 1: backend
+# Terminal 1: backend (http://localhost:3001)
 cd backend && npm run dev
 
-# Terminal 2: frontend
+# Terminal 2: frontend (http://localhost:5173)
 cd frontend && npm run dev
 
-# Electron shell (backend on 3002 to avoid conflicts)
+# Electron shell (backend on 3002 to avoid port clash)
 npm run dev:electron
 ```
-Frontend dev server: http://localhost:5173  
-Backend dev server: http://localhost:3001 (or 3002 for dev:electron)
 
 ## Production build
 ```bash
@@ -41,31 +46,34 @@ npm run build          # builds frontend + backend
 npm run start          # runs backend/dist/index.js
 ```
 
-## Packaging (Electron)
-- `npm run package` or `npm run package:linux` builds frontend/backend and rebuilds `better-sqlite3` against the installed Electron version.
-- Packaged backend runs via Electron’s embedded Node (`ELECTRON_RUN_AS_NODE=1`), so no system Node.js is needed at runtime.
-- If you see a `NODE_MODULE_VERSION` mismatch after switching Node versions, run `npm run rebuild:native` then re-run the package script.
-
-## Tests
+## Packaging (Linux)
 ```bash
-cd backend && npm run test
+npm run package:linux
 ```
+Outputs go to `release/`:
+- `Minty Dashboard-<version>.AppImage`
+- `minty-dashboard_<version>_amd64.deb`
+
+Notes:
+- The packaging script rebuilds `better-sqlite3` against the bundled Electron. If you change Node versions and hit `NODE_MODULE_VERSION` errors, run `npm run rebuild:native` then re-run the package.
+- Icons come from `frontend/public/icons/minty-icon.png` and are copied into `electron/icons/`.
 
 ## Configuration
-- Stocks watchlist: `backend/src/stocks/stockService.ts` (when enabled)
-- News feeds: `backend/src/services/newsService.ts`
+- Stocks: `backend/src/stocks/stockService.ts` (backend) and `VITE_STOCKS_ENABLED` (frontend) control visibility.
+- News feeds: `backend/src/services/newsService.ts`.
+- Settings (transparency, layout profiles, widget toggles) persist locally.
 
-## Environment variables
+### Environment variables
 - `PORT`: backend port (default `3001`)
 - `STOCKS_ENABLED`: enable stocks in backend (`true`/`1`), default `false`
 - `VITE_STOCKS_ENABLED`: enable stocks in frontend (`true`/`1`), default `false`
-- `STOCKS_DEBUG`: verbose stock fetching logs (`1` or `true`)
+- `STOCKS_DEBUG`: verbose stock logs (`1` or `true`)
 - `STOCKS_ALLOW_FALLBACK`: allow fallback stock data (`1` or `true`)
 
 ## Troubleshooting
-- Yahoo Finance rate limits: increase the update interval (120s+ recommended).
-- Wrong ticker: include the exchange suffix (e.g., `SAP.DE`).
-- No data: check network; enable `STOCKS_DEBUG=1` for backend logs.
+- Stock data rate limits: increase update interval (120s+ recommended).
+- Ticker lookup: include exchange suffix (e.g., `SAP.DE`).
+- Module version mismatch during packaging: run `npm run rebuild:native`.
 
 ## Tech stack
 - Frontend: Vite, React, TypeScript, Tailwind, Zustand
@@ -79,7 +87,3 @@ ultrawide-dashboard/
 ├── backend/     # Express backend
 └── shared/      # Shared TypeScript types
 ```
-
-## Credits
-- Minty character design: custom SVG inspired by Linux Mint.
-- Concept art: generated for initial design reference.

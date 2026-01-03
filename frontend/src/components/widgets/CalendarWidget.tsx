@@ -78,10 +78,13 @@ export function CalendarWidget() {
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1 flex-1 auto-rows-fr">
+        <div
+          className="grid grid-cols-7 gap-1 flex-1"
+          style={{ gridAutoRows: 'minmax(2.25rem, 1fr)' }}
+        >
           {days.map((date, index) => {
             if (!date) {
-              return <div key={`empty-${index}`} className="h-8" />;
+              return <div key={`empty-${index}`} className="min-h-[2.25rem]" />;
             }
 
             const isToday =
@@ -92,7 +95,7 @@ export function CalendarWidget() {
             return (
               <div
                 key={date.toISOString()}
-                className={`h-8 flex items-center justify-center rounded-md text-sm ${
+                className={`flex items-center justify-center rounded-md text-sm min-h-[2.25rem] ${
                   isToday
                     ? 'bg-[var(--color-accent)] text-white font-semibold'
                     : 'text-[var(--color-text-primary)]'

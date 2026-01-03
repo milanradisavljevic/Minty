@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { WidgetWrapper } from './WidgetWrapper';
+import { useTranslation, getLocale } from '../../i18n';
 
 interface RandomArticle {
   id: string;
@@ -28,6 +29,8 @@ const SOURCE_CONFIG: Record<Source, { label: string; icon: string; apiUrl: strin
 };
 
 export function RabbitHoleWidget() {
+  const { t, language } = useTranslation();
+  const locale = getLocale(language);
   const [currentArticle, setCurrentArticle] = useState<RandomArticle | null>(null);
   const [history, setHistory] = useState<RandomArticle[]>([]);
   const [loading, setLoading] = useState(false);
@@ -64,15 +67,15 @@ export function RabbitHoleWidget() {
       const response = await fetch(config.apiUrl);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch article');
+        throw new Error(t('rabbitHole.error'));
       }
 
       const data = await response.json();
 
       const article: RandomArticle = {
         id: data.pageid?.toString() || Date.now().toString(),
-        title: data.title || 'Unbekannt',
-        extract: data.extract || data.description || 'Keine Beschreibung verfügbar.',
+        title: data.title || t('rabbitHole.unknownTitle'),
+        extract: data.extract || data.description || t('rabbitHole.noDescription'),
         url: data.content_urls?.desktop?.page || `${config.baseUrl}${encodeURIComponent(data.title)}`,
         thumbnail: data.thumbnail?.source,
         timestamp: Date.now(),
@@ -86,7 +89,7 @@ export function RabbitHoleWidget() {
         return [article, ...filtered].slice(0, 10);
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fehler beim Laden');
+      setError(err instanceof Error ? err.message : t('rabbitHole.error'));
     } finally {
       setLoading(false);
     }
@@ -130,7 +133,7 @@ export function RabbitHoleWidget() {
                 ? 'bg-[var(--color-accent)]/20 text-[var(--color-accent)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
             }`}
-            title="History"
+            title={t('rabbitHole.history')}
           >
             📚 {history.length}
           </button>
@@ -141,7 +144,7 @@ export function RabbitHoleWidget() {
           <div className="flex-1 overflow-y-auto px-3 py-2">
             {history.length === 0 ? (
               <div className="h-full flex items-center justify-center text-[var(--color-text-secondary)] text-xs">
-                Keine History vorhanden
+                {t('rabbitHole.historyEmpty')}
               </div>
             ) : (
               <div className="space-y-2">
@@ -155,7 +158,7 @@ export function RabbitHoleWidget() {
                       {article.title}
                     </div>
                     <div className="text-[10px] text-[var(--color-text-secondary)] mt-0.5">
-                      {new Date(article.timestamp).toLocaleString('de-DE', {
+                      {new Date(article.timestamp).toLocaleString(locale, {
                         day: 'numeric',
                         month: 'short',
                         hour: '2-digit',
@@ -168,7 +171,7 @@ export function RabbitHoleWidget() {
                   onClick={clearHistory}
                   className="w-full text-xs text-[var(--color-error)] hover:underline mt-2"
                 >
-                  History löschen
+                  {t('rabbitHole.historyClear')}
                 </button>
               </div>
             )}
@@ -180,7 +183,7 @@ export function RabbitHoleWidget() {
               {!currentArticle && !loading && !error && (
                 <div className="h-full flex flex-col items-center justify-center text-[var(--color-text-secondary)]">
                   <span className="text-4xl mb-2">🐰</span>
-                  <span className="text-xs">Klicke auf den Button um in den Rabbit Hole zu springen!</span>
+                  <span className="text-xs text-center">{t('rabbitHole.description')}</span>
                 </div>
               )}
 
@@ -193,7 +196,7 @@ export function RabbitHoleWidget() {
               {error && (
                 <div className="h-full flex flex-col items-center justify-center text-[var(--color-error)]">
                   <span className="text-2xl mb-2">⚠️</span>
-                  <span className="text-xs">{error}</span>
+                  <span className="text-xs">{error || t('rabbitHole.error')}</span>
                 </div>
               )}
 
@@ -227,7 +230,7 @@ export function RabbitHoleWidget() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-xs text-[var(--color-accent)] hover:underline"
                   >
-                    Mehr lesen →
+                    {t('rabbitHole.readMore')} →
                   </a>
                 </div>
               )}
@@ -250,11 +253,11 @@ export function RabbitHoleWidget() {
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="animate-spin">🐰</span>
-                    Suche...
+                    {t('rabbitHole.loading')}
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
-                    🕳️ In den Rabbit Hole springen
+                    🕳️ {t('rabbitHole.button')}
                   </span>
                 )}
               </button>

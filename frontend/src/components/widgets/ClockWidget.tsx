@@ -3,6 +3,14 @@ import { WidgetWrapper } from './WidgetWrapper';
 import { getLocale, useTranslation } from '../../i18n';
 import { useSettingsStore } from '../../stores/settingsStore';
 
+const CLOCK_SIZES: Record<'xs' | 's' | 'm' | 'l' | 'xl', { time: string; date: string }> = {
+  xs: { time: '2rem', date: '0.75rem' },
+  s: { time: '3rem', date: '0.875rem' },
+  m: { time: '4rem', date: '1rem' },
+  l: { time: '5.5rem', date: '1.25rem' },
+  xl: { time: '7rem', date: '1.5rem' },
+};
+
 export function ClockWidget() {
   const { language } = useTranslation();
   const locale = getLocale(language);
@@ -77,15 +85,23 @@ export function ClockWidget() {
   };
 
   const dateStr = formatDate(time);
+  const sizeKey = clockSettings.size || 'm';
+  const size = CLOCK_SIZES[sizeKey];
 
   return (
     <WidgetWrapper titleKey="widget_clock">
       <div className="flex flex-col items-center justify-center h-full">
-        <div className="text-6xl font-bold tabular-nums tracking-tight text-[var(--color-text-primary)]">
+        <div
+          className="font-bold tabular-nums tracking-tight text-[var(--color-text-primary)] leading-tight text-center"
+          style={{ fontSize: size.time }}
+        >
           {formatTime(time)}
         </div>
         {dateStr && (
-          <div className="mt-4 text-xl text-[var(--color-text-secondary)]">
+          <div
+            className="mt-3 text-[var(--color-text-secondary)] text-center"
+            style={{ fontSize: size.date }}
+          >
             {dateStr}
           </div>
         )}

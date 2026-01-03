@@ -15,6 +15,7 @@ export interface ClockSettings {
   dateFormat: 'DMY' | 'MDY' | 'YMD' | 'long' | 'system';
   showWeekday: boolean;
   weekdayFormat: 'short' | 'long';
+   size: 'xs' | 's' | 'm' | 'l' | 'xl';
 }
 
 export interface AppearanceSettings {
@@ -34,6 +35,7 @@ export interface GeneralSettings {
   language: Language;
   theme: 'dark' | 'light';
   refreshInterval: number; // in seconds
+  mementoMoriEnabled: boolean;
 }
 
 export interface PomodoroSettings {
@@ -94,6 +96,7 @@ interface SettingsState {
   setLanguage: (lang: Language) => void;
   setTheme: (theme: 'dark' | 'light') => void;
   setRefreshInterval: (interval: number) => void;
+  setGeneralSettings: (settings: Partial<GeneralSettings>) => void;
 
   setPomodoroSettings: (settings: Partial<PomodoroSettings>) => void;
   setClockSettings: (settings: Partial<ClockSettings>) => void;
@@ -122,6 +125,7 @@ const DEFAULT_GENERAL: GeneralSettings = {
   language: 'de',
   theme: 'dark',
   refreshInterval: 60,
+  mementoMoriEnabled: true,
 };
 
 const DEFAULT_POMODORO: PomodoroSettings = {
@@ -158,6 +162,7 @@ const DEFAULT_CLOCK: ClockSettings = {
   dateFormat: 'system',
   showWeekday: true,
   weekdayFormat: 'long',
+  size: 'm',
 };
 
 const DEFAULT_APPEARANCE: AppearanceSettings = {
@@ -225,6 +230,11 @@ export const useSettingsStore = create<SettingsState>()(
           general: { ...(state.general || DEFAULT_GENERAL), refreshInterval },
         })),
 
+      setGeneralSettings: (settings) =>
+        set((state) => ({
+          general: { ...(state.general || DEFAULT_GENERAL), ...settings },
+        })),
+
       setPomodoroSettings: (settings) =>
         set((state) => ({
           pomodoro: { ...(state.pomodoro || DEFAULT_POMODORO), ...settings },
@@ -259,9 +269,9 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'dashboard-settings',
-      version: 7, // Incremented for transparency toggle + widget alpha semantics
+      version: 8, // v8: clock size + memento mori toggle
       migrate: (state: any, version: number) => {
-        console.log(`[Settings] Migrating from version ${version} to 7`);
+        console.log(`[Settings] Migrating from version ${version} to 8`);
 
         try {
           // Start with a safe baseline
@@ -282,12 +292,18 @@ export const useSettingsStore = create<SettingsState>()(
             console.warn('[Settings] Invalid language, defaulting to de');
             next.general.language = DEFAULT_GENERAL.language;
           }
+          if (next.general.mementoMoriEnabled === undefined) {
+            next.general.mementoMoriEnabled = true;
+          }
 
           // Pomodoro: merge with defaults
           next.pomodoro = { ...DEFAULT_POMODORO, ...(next.pomodoro || {}) };
 
           // NEW: Clock settings (added in v4)
           next.clock = { ...DEFAULT_CLOCK, ...(next.clock || {}) };
+          if (!next.clock.size) {
+            next.clock.size = 'm';
+          }
 
           // NEW: Appearance settings (added in v4)
           next.appearance = { ...DEFAULT_APPEARANCE, ...(next.appearance || {}) };

@@ -4,6 +4,7 @@ import { useTranslation } from '../i18n';
 import { WIDGET_TITLE_KEYS } from '../constants/widgets';
 import type { NewsFeedConfig } from '../types';
 import { fetchWeatherData } from '../utils/weather';
+import { useLayoutStore, layoutBreakpoints, type LayoutProfile } from '../stores/layoutStore';
 
 function WidgetsTab() {
   const { t } = useTranslation();
@@ -676,10 +677,31 @@ function CalendarTab() {
 
 function GeneralTab() {
   const { t } = useTranslation();
-  const general = useSettingsStore((s) => s.general ?? { theme: 'dark', language: 'de', refreshInterval: 60 });
+  const general = useSettingsStore((s) => s.general ?? { theme: 'dark', language: 'de', refreshInterval: 60, mementoMoriEnabled: true });
   const appearance = useSettingsStore((s) => s.appearance ?? { backgroundOpacity: 100, widgetOpacity: 100, transparencyEnabled: true, enableBlur: false, blurStrength: 10 });
   const setTheme = useSettingsStore((s) => s.setTheme);
   const setAppearanceSettings = useSettingsStore((s) => s.setAppearanceSettings);
+  const setGeneralSettings = useSettingsStore((s) => s.setGeneralSettings);
+  const layoutMode = useLayoutStore((s) => s.mode);
+  const manualProfile = useLayoutStore((s) => s.manualProfile);
+  const setLayoutMode = useLayoutStore((s) => s.setMode);
+  const setManualProfile = useLayoutStore((s) => s.setManualProfile);
+  const [detectedProfile, setDetectedProfile] = useState<LayoutProfile>(() => {
+    const width = window.innerWidth;
+    if (width >= layoutBreakpoints.ultrawide) return 'ultrawide';
+    if (width >= layoutBreakpoints.standard) return 'standard';
+    return 'compact';
+  });
+  useEffect(() => {
+    const onResize = () => {
+      const width = window.innerWidth;
+      if (width >= layoutBreakpoints.ultrawide) setDetectedProfile('ultrawide');
+      else if (width >= layoutBreakpoints.standard) setDetectedProfile('standard');
+      else setDetectedProfile('compact');
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   const [restarting, setRestarting] = useState(false);
   const [restartError, setRestartError] = useState<string | null>(null);
   const transparencyEnabled = appearance.transparencyEnabled !== false;
@@ -731,6 +753,89 @@ function GeneralTab() {
           >
             {t('theme_light')}
           </button>
+        </div>
+      </div>
+
+      {/* Layout profile */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+              {t('layout_mode_label')}
+            </label>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              {layoutMode === 'auto'
+                ? t('layout_mode_auto_hint').replace('{profile}', t(`layout_profile_${detectedProfile}` as any))
+                : t('layout_mode_manual_hint')}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setLayoutMode('auto')}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                layoutMode === 'auto'
+                  ? 'bg-[var(--color-accent)] text-white'
+                  : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
+              }`}
+            >
+              {t('layout_mode_auto')}
+            </button>
+            <button
+              onClick={() => setLayoutMode('manual')}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                layoutMode === 'manual'
+                  ? 'bg-[var(--color-accent)] text-white'
+                  : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
+              }`}
+            >
+              {t('layout_mode_manual')}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+            {t('layout_profile_label')}
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {(['compact', 'standard', 'ultrawide'] as LayoutProfile[]).map((profile) => (
+              <button
+                key={profile}
+                onClick={() => setManualProfile(profile)}
+                disabled={layoutMode === 'auto'}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  layoutMode === 'manual' && manualProfile === profile
+                    ? 'bg-[var(--color-accent)] text-white'
+                    : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
+                } ${layoutMode === 'auto' ? 'opacity-60 cursor-not-allowed' : ''}`}
+              >
+                {t(`layout_profile_${profile}` as any)}
+                {layoutMode === 'auto' && detectedProfile === profile ? ' •' : ''}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Memento Mori toggle */}
+      <div className="flex items-center justify-between">
+        <div>
+          <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+            {t('memento_mori_toggle')}
+          </label>
+          <p className="text-xs text-[var(--color-text-secondary)]">{t('memento_mori_hint')}</p>
+        </div>
+        <div
+          className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+            general.mementoMoriEnabled ? 'bg-[var(--color-accent)]' : 'bg-gray-600'
+          }`}
+          onClick={() => setGeneralSettings({ mementoMoriEnabled: !general.mementoMoriEnabled })}
+        >
+          <div
+            className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+              general.mementoMoriEnabled ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
         </div>
       </div>
 
@@ -912,9 +1017,17 @@ function PomodoroTab() {
 }
 
 function ClockTab() {
+  const { t } = useTranslation();
   const clock = useSettingsStore((s) => s.clock);
   const setClockSettings = useSettingsStore((s) => s.setClockSettings);
   const [previewTime, setPreviewTime] = useState(new Date());
+  const sizeMap: Record<'xs' | 's' | 'm' | 'l' | 'xl', { time: string; date: string }> = {
+    xs: { time: '2rem', date: '0.75rem' },
+    s: { time: '3rem', date: '0.875rem' },
+    m: { time: '4rem', date: '1rem' },
+    l: { time: '5.5rem', date: '1.25rem' },
+    xl: { time: '7rem', date: '1.5rem' },
+  };
 
   // Update preview time every second
   useEffect(() => {
@@ -978,13 +1091,49 @@ function ClockTab() {
     }
   }
 
+  const size = sizeMap[clock.size || 'm'];
+
   return (
     <div className="space-y-6">
+      {/* Size selector */}
+      <div>
+        <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+          {useTranslation().t('clock_size_label')}
+        </label>
+        <div className="grid grid-cols-5 gap-2">
+          {(['xs', 's', 'm', 'l', 'xl'] as const).map((sizeKey) => (
+            <button
+              key={sizeKey}
+              onClick={() => setClockSettings({ size: sizeKey })}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                clock.size === sizeKey
+                  ? 'bg-[var(--color-accent)] text-white'
+                  : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
+              }`}
+            >
+              {sizeKey.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Preview */}
       <div className="p-4 bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] rounded-lg text-center">
-        <p className="text-xs text-[var(--color-text-secondary)] mb-2">Preview</p>
-        <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{timeStr}</p>
-        {dateStr && <p className="text-sm text-[var(--color-text-secondary)] mt-1">{dateStr}</p>}
+        <p className="text-xs text-[var(--color-text-secondary)] mb-2">{t('preview')}</p>
+        <p
+          className="font-semibold text-[var(--color-text-primary)] leading-tight"
+          style={{ fontSize: size.time }}
+        >
+          {timeStr}
+        </p>
+        {dateStr && (
+          <p
+            className="text-[var(--color-text-secondary)] mt-2"
+            style={{ fontSize: size.date }}
+          >
+            {dateStr}
+          </p>
+        )}
       </div>
 
       {/* Time Format */}
