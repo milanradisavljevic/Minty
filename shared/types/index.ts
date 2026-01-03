@@ -104,12 +104,7 @@ export interface DashboardConfig {
   widgets: WidgetConfig[];
 }
 
-// Stocks/news/weather/calendar config
-export interface StockConfig {
-  watchlist: string[];
-  updateInterval: number;
-}
-
+// News/weather/calendar config
 export interface NewsFeedConfig {
   id: string;
   name: string;
@@ -159,33 +154,9 @@ export interface AppConfig {
   locale: string;
   timezone: string;
   dashboard: DashboardConfig;
-  stocks: StockConfig;
   news: NewsConfig;
   weather: WeatherConfig;
   calendar: CalendarConfig;
-}
-
-// Stock types
-export interface StockQuote {
-  symbol: string;
-  name: string;
-  price: number;
-  change: number;
-  changePercent: number;
-  currency: string;
-  asOf: number;
-  priceSource: 'regular' | 'post' | 'pre' | 'fallback';
-  fetchedAt?: number;
-}
-
-export interface StockQuotesResponse {
-  quotes: StockQuote[];
-  fromCache?: boolean;
-  stale?: boolean;
-  missing?: string[];
-  error?: string;
-  timestamp?: number;
-  source?: 'live' | 'cache' | 'fallback';
 }
 
 // News types

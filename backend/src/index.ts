@@ -40,14 +40,6 @@ import type { DashboardConfig, NewsFeedConfig } from '../../shared/types/index.j
 const app = express();
 const httpServer = createServer(app);
 
-const STOCKS_ENABLED =
-  process.env.STOCKS_ENABLED === '1' || process.env.STOCKS_ENABLED === 'true';
-
-async function loadStockService() {
-  if (!STOCKS_ENABLED) return null;
-  return import('./stocks/stockService.js');
-}
-
 // Load initial config (config file + DB overrides)
 loadConfig();
 
@@ -233,57 +225,6 @@ app.get('/api/weather', async (_req, res) => {
     console.error('Error fetching weather:', error);
     res.status(500).json({ error: 'Failed to fetch weather' });
   }
-});
-
-// Stock endpoints
-app.get('/api/stocks', async (req, res) => {
-  if (!STOCKS_ENABLED) {
-    res.status(503).json({
-      quotes: [],
-      error: 'Stocks disabled (backlog)',
-      disabled: true,
-      timestamp: Date.now(),
-    });
-    return;
-  }
-
-  const stockService = await loadStockService();
-  if (!stockService) {
-    res.status(503).json({
-      quotes: [],
-      error: 'Stocks disabled (backlog)',
-      disabled: true,
-      timestamp: Date.now(),
-    });
-    return;
-  }
-
-  try {
-    const symbolsParam = req.query.symbols;
-    const symbols =
-      typeof symbolsParam === 'string'
-        ? symbolsParam
-            .split(',')
-            .map((s) => s.trim().toUpperCase())
-            .filter(Boolean)
-        : undefined;
-
-    const force = req.query.force === 'true' || req.query.force === '1';
-    const result = await stockService.getStockQuotes(symbols, { force });
-    res.json({
-      ...result,
-      timestamp: result.timestamp ?? Date.now(),
-    });
-  } catch (error) {
-    console.error('Error fetching stocks:', error);
-    const message = error instanceof Error ? error.message : 'Failed to fetch stock data';
-    res.status(500).json({ error: message });
-  }
-});
-
-app.get('/api/stocks/watchlist', (_req, res) => {
-  const watchlist = getConfig().stocks.watchlist ?? [];
-  res.json({ watchlist, disabled: !STOCKS_ENABLED });
 });
 
 // News endpoints
@@ -517,9 +458,13 @@ io.on('connection', (socket) => {
 // Production: Serve frontend static files
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const frontendDist = join(__dirname, '../../frontend/dist');
+const frontendDistCandidates = [
+  join(__dirname, '../../frontend/dist'),
+  join(process.cwd(), '../frontend/dist'),
+];
+const frontendDist = frontendDistCandidates.find((candidate) => existsSync(candidate));
 
-if (existsSync(frontendDist)) {
+if (frontendDist) {
   console.log('Production mode: Serving frontend from', frontendDist);
   app.use(express.static(frontendDist));
 
@@ -538,7 +483,7 @@ const PORT = process.env.PORT || 3001;
 
 httpServer.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
-  if (existsSync(frontendDist)) {
+  if (frontendDist && existsSync(frontendDist)) {
     console.log(`Frontend available at http://localhost:${PORT}`);
   }
   console.log('Waiting for clients to connect...');

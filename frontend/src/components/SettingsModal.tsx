@@ -3,6 +3,7 @@ import { useSettingsStore, type Language } from '../stores/settingsStore';
 import { useTranslation } from '../i18n';
 import { WIDGET_TITLE_KEYS } from '../constants/widgets';
 import type { NewsFeedConfig } from '../types';
+import { fetchWeatherData } from '../utils/weather';
 
 function WidgetsTab() {
   const { t } = useTranslation();
@@ -38,102 +39,6 @@ function WidgetsTab() {
           </label>
         ))}
       </div>
-    </div>
-  );
-}
-
-function StocksTab() {
-  const { t } = useTranslation();
-  const watchlist = useSettingsStore((s) => s.stocks?.watchlist ?? []);
-  const addStock = useSettingsStore((s) => s.addStock);
-  const removeStock = useSettingsStore((s) => s.removeStock);
-  const updateInterval = useSettingsStore((s) => s.stocks?.updateInterval ?? 120000);
-  const setIntervalMs = useSettingsStore((s) => s.setStockUpdateInterval);
-  const [newSymbol, setNewSymbol] = useState('');
-  const stocksEnabled =
-    import.meta.env.VITE_STOCKS_ENABLED === '1' || import.meta.env.VITE_STOCKS_ENABLED === 'true';
-
-  const handleAdd = () => {
-    if (newSymbol.trim()) {
-      addStock(newSymbol);
-      setNewSymbol('');
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-[var(--color-text-secondary)]">
-        {t('stocks_description')}
-      </p>
-
-      {!stocksEnabled && (
-        <div className="text-sm text-[var(--color-text-secondary)] bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] rounded-md px-3 py-2">
-          Stocks under construction
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={newSymbol}
-          onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
-          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          placeholder={t('stocks_placeholder')}
-          className="flex-1 px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)] disabled:opacity-60 disabled:cursor-not-allowed"
-          disabled={!stocksEnabled}
-        />
-        <button
-          onClick={handleAdd}
-          className="px-4 py-2 rounded-md bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          disabled={!stocksEnabled}
-        >
-          {t('stocks_add')}
-        </button>
-      </div>
-
-      <div className="space-y-2">
-        <label className="block text-sm text-[var(--color-text-primary)]">
-          {t('stocks_interval_label')}
-        </label>
-        <input
-          type="number"
-          min={15}
-          max={600}
-          value={Math.round(updateInterval / 1000)}
-          onChange={(e) => setIntervalMs(Number(e.target.value) * 1000)}
-          className="w-32 px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)] disabled:opacity-60 disabled:cursor-not-allowed"
-          disabled={!stocksEnabled}
-        />
-        <p className="text-[11px] text-[var(--color-text-secondary)]">
-          {t('stocks_interval_hint')}
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
-        {watchlist.map((symbol) => (
-          <div
-            key={symbol}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)]"
-          >
-            <span className="text-sm text-[var(--color-text-primary)]">{symbol}</span>
-            <button
-              onClick={() => removeStock(symbol)}
-              className="text-[var(--color-text-secondary)] hover:text-[var(--color-error)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={!stocksEnabled}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {watchlist.length === 0 && (
-        <p className="text-sm text-[var(--color-text-secondary)] text-center py-4">
-          {t('stocks_empty_watchlist')}
-        </p>
-      )}
     </div>
   );
 }
@@ -551,13 +456,233 @@ function NewsTab() {
   );
 }
 
+function WeatherTab() {
+  const { t } = useTranslation();
+  const weather = useSettingsStore((s) => s.weather ?? { latitude: 48.2082, longitude: 16.3738, units: 'metric', locationName: '' });
+  const setWeatherSettings = useSettingsStore((s) => s.setWeatherSettings);
+  const [latitude, setLatitude] = useState(String(weather.latitude));
+  const [longitude, setLongitude] = useState(String(weather.longitude));
+  const [units, setUnits] = useState<'metric' | 'imperial'>(weather.units ?? 'metric');
+  const [locationName, setLocationName] = useState(weather.locationName ?? '');
+  const [savingMessage, setSavingMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  useEffect(() => {
+    setLatitude(String(weather.latitude));
+    setLongitude(String(weather.longitude));
+    setUnits(weather.units ?? 'metric');
+    setLocationName(weather.locationName ?? '');
+  }, [weather.latitude, weather.longitude, weather.units, weather.locationName]);
+
+  const parseCoordinate = (value: string, min: number, max: number) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < min || parsed > max) {
+      return null;
+    }
+    return parsed;
+  };
+
+  const handleSave = () => {
+    const lat = parseCoordinate(latitude, -90, 90);
+    const lon = parseCoordinate(longitude, -180, 180);
+
+    if (lat === null || lon === null) {
+      setErrorMessage(t('weather_settings_invalid'));
+      setSavingMessage(null);
+      return;
+    }
+
+    setWeatherSettings({
+      latitude: lat,
+      longitude: lon,
+      units,
+      locationName: locationName.trim(),
+    });
+    setErrorMessage(null);
+    setSavingMessage(t('weather_settings_saved'));
+  };
+
+  const handleTest = async () => {
+    const lat = parseCoordinate(latitude, -90, 90);
+    const lon = parseCoordinate(longitude, -180, 180);
+
+    if (lat === null || lon === null) {
+      setErrorMessage(t('weather_settings_invalid'));
+      setSavingMessage(null);
+      return;
+    }
+
+    setTesting(true);
+    setSavingMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const result = await fetchWeatherData({ latitude: lat, longitude: lon, units });
+      const unitLabel = units === 'imperial' ? '°F' : '°C';
+      setSavingMessage(`${t('weather_settings_test_success')}: ${Math.round(result.temperature)}${unitLabel}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('weather_unknown_error');
+      setErrorMessage(`${t('weather_error')}: ${message}`);
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-[var(--color-text-secondary)]">{t('weather_settings_description')}</p>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+            {t('weather_settings_latitude')}
+          </label>
+          <input
+            type="number"
+            step="0.0001"
+            value={latitude}
+            onChange={(e) => setLatitude(e.target.value)}
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+            {t('weather_settings_longitude')}
+          </label>
+          <input
+            type="number"
+            step="0.0001"
+            value={longitude}
+            onChange={(e) => setLongitude(e.target.value)}
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+          {t('weather_settings_location')}
+        </label>
+        <input
+          type="text"
+          value={locationName}
+          onChange={(e) => setLocationName(e.target.value)}
+          placeholder={t('weather_settings_location_placeholder')}
+          className="w-full px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+          {t('weather_settings_unit')}
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => setUnits('metric')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              units === 'metric'
+                ? 'bg-[var(--color-accent)] text-white'
+                : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)] hover:border-[var(--color-accent)]'
+            }`}
+          >
+            {t('weather_settings_unit_c')}
+          </button>
+          <button
+            onClick={() => setUnits('imperial')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              units === 'imperial'
+                ? 'bg-[var(--color-accent)] text-white'
+                : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)] hover:border-[var(--color-accent)]'
+            }`}
+          >
+            {t('weather_settings_unit_f')}
+          </button>
+        </div>
+      </div>
+
+      {(savingMessage || errorMessage) && (
+        <div
+          className={`text-sm ${
+            errorMessage ? 'text-[var(--color-error)]' : 'text-[var(--color-accent)]'
+          }`}
+        >
+          {errorMessage || savingMessage}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleTest}
+          disabled={testing}
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            testing
+              ? 'bg-[var(--color-widget-bg)] text-[var(--color-text-secondary)] border border-[var(--color-widget-border)]'
+              : 'bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]'
+          }`}
+        >
+          {testing ? t('weather_settings_testing') : t('weather_settings_test')}
+        </button>
+        <button
+          onClick={handleSave}
+          className="px-4 py-2 rounded-md text-sm font-medium transition-colors bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]"
+        >
+          {t('weather_settings_save')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CalendarTab() {
+  const { t } = useTranslation();
+  const calendar = useSettingsStore((s) => s.calendar ?? { weekStartsOn: 'monday' });
+  const setCalendarSettings = useSettingsStore((s) => s.setCalendarSettings);
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-[var(--color-text-secondary)]">{t('calendar_settings_description')}</p>
+
+      <div>
+        <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+          {t('calendar_week_start_label')}
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => setCalendarSettings({ weekStartsOn: 'monday' })}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              calendar.weekStartsOn === 'monday'
+                ? 'bg-[var(--color-accent)] text-white border-2 border-[var(--color-accent)]'
+                : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border-2 border-[var(--color-widget-border)] hover:border-[var(--color-accent)]'
+            }`}
+          >
+            {t('calendar_week_start_monday')}
+          </button>
+          <button
+            onClick={() => setCalendarSettings({ weekStartsOn: 'sunday' })}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              calendar.weekStartsOn === 'sunday'
+                ? 'bg-[var(--color-accent)] text-white border-2 border-[var(--color-accent)]'
+                : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border-2 border-[var(--color-widget-border)] hover:border-[var(--color-accent)]'
+            }`}
+          >
+            {t('calendar_week_start_sunday')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function GeneralTab() {
   const { t } = useTranslation();
   const general = useSettingsStore((s) => s.general ?? { theme: 'dark', language: 'de', refreshInterval: 60 });
+  const appearance = useSettingsStore((s) => s.appearance ?? { backgroundOpacity: 100, widgetOpacity: 100, transparencyEnabled: true, enableBlur: false, blurStrength: 10 });
   const setTheme = useSettingsStore((s) => s.setTheme);
-  const setLanguage = useSettingsStore((s) => s.setLanguage);
+  const setAppearanceSettings = useSettingsStore((s) => s.setAppearanceSettings);
   const [restarting, setRestarting] = useState(false);
   const [restartError, setRestartError] = useState<string | null>(null);
+  const transparencyEnabled = appearance.transparencyEnabled !== false;
 
   const restartBackend = async () => {
     try {
@@ -590,8 +715,8 @@ function GeneralTab() {
             onClick={() => setTheme('dark')}
             className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               general.theme === 'dark'
-                ? 'bg-[var(--color-accent)] text-white'
-                : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
+                ? 'bg-[var(--color-accent)] text-white border-2 border-[var(--color-accent)]'
+                : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border-2 border-[var(--color-widget-border)] hover:border-[var(--color-accent)]'
             }`}
           >
             {t('theme_dark')}
@@ -600,8 +725,8 @@ function GeneralTab() {
             onClick={() => setTheme('light')}
             className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               general.theme === 'light'
-                ? 'bg-[var(--color-accent)] text-white'
-                : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
+                ? 'bg-[var(--color-accent)] text-white border-2 border-[var(--color-accent)]'
+                : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border-2 border-[var(--color-widget-border)] hover:border-[var(--color-accent)]'
             }`}
           >
             {t('theme_light')}
@@ -609,27 +734,76 @@ function GeneralTab() {
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
-          {t('language_label')}
+      {/* Transparency Settings */}
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+              {t('transparency_mode_title')}
+            </label>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              {t('transparency_mode_hint')}
+            </p>
+          </div>
+          <button
+            onClick={() => setAppearanceSettings({ transparencyEnabled: !transparencyEnabled })}
+            className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors border border-[var(--color-widget-border)] ${transparencyEnabled ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-widget-bg)]'}`}
+            aria-pressed={transparencyEnabled}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${transparencyEnabled ? 'translate-x-7' : 'translate-x-1'}`}
+            />
+            <span className="sr-only">{transparencyEnabled ? t('transparency_on') : t('transparency_off')}</span>
+          </button>
+        </div>
+
+        <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+          {t('transparency_title') || 'Hintergrund-Transparenz'}
         </label>
-        <div className="grid grid-cols-2 gap-3">
-          {(['de', 'en', 'es', 'sr'] as Language[]).map((lang) => (
-            <button
-              key={lang}
-              onClick={() => setLanguage(lang)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                general.language === lang
-                  ? 'bg-[var(--color-accent)] text-white'
-                  : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
-              }`}
-            >
-              {lang === 'de' && t('language_german')}
-              {lang === 'en' && t('language_english')}
-              {lang === 'es' && t('language_spanish')}
-              {lang === 'sr' && t('language_serbo_croatian')}
-            </button>
-          ))}
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-[var(--color-text-secondary)]">
+              {appearance.backgroundOpacity}%
+            </span>
+          </div>
+
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={appearance.backgroundOpacity}
+            disabled={!transparencyEnabled}
+            onChange={(e) => setAppearanceSettings({ backgroundOpacity: parseInt(e.target.value) })}
+            className={`w-full h-2 bg-[var(--color-widget-border)] rounded-lg appearance-none ${transparencyEnabled ? 'cursor-pointer accent-[var(--color-accent)]' : 'cursor-not-allowed opacity-50'}`}
+          />
+
+          <p className="text-xs text-[var(--color-text-secondary)]">
+            {t('transparency_hint') || '0% = maximale Transparenz, 100% = vollständig opak'}
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+            {t('transparency_widget_title')}
+          </label>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-[var(--color-text-secondary)]">
+              {appearance.widgetOpacity}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={appearance.widgetOpacity}
+            disabled={!transparencyEnabled}
+            onChange={(e) => setAppearanceSettings({ widgetOpacity: parseInt(e.target.value) })}
+            className={`w-full h-2 bg-[var(--color-widget-border)] rounded-lg appearance-none ${transparencyEnabled ? 'cursor-pointer accent-[var(--color-accent)]' : 'cursor-not-allowed opacity-50'}`}
+          />
+          <p className="text-xs text-[var(--color-text-secondary)]">
+            {t('transparency_widget_hint')}
+          </p>
         </div>
       </div>
 
@@ -993,6 +1167,7 @@ function LanguageTab() {
 }
 
 export function SettingsModal() {
+  const { t } = useTranslation();
   const isOpen = useSettingsStore((s) => s.isOpen);
   const closeSettings = useSettingsStore((s) => s.closeSettings);
   const activeTab = useSettingsStore((s) => s.activeTab);
@@ -1001,13 +1176,14 @@ export function SettingsModal() {
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'widgets' as const, label: 'Widgets', icon: '🧩' },
-    { id: 'clock' as const, label: 'Clock', icon: '🕐' },
-    { id: 'language' as const, label: 'Language', icon: '🌐' },
-    { id: 'news' as const, label: 'News', icon: '📰' },
-    { id: 'stocks' as const, label: 'Stocks', icon: '📈' },
-    { id: 'pomodoro' as const, label: 'Pomodoro', icon: '🍅' },
-    { id: 'general' as const, label: 'General', icon: '⚙️' },
+    { id: 'widgets' as const, labelKey: 'tab_widgets' as const, icon: '🧩' },
+    { id: 'weather' as const, labelKey: 'tab_weather' as const, icon: '🌤️' },
+    { id: 'calendar' as const, labelKey: 'tab_calendar' as const, icon: '📅' },
+    { id: 'clock' as const, labelKey: 'tab_clock' as const, icon: '🕐' },
+    { id: 'language' as const, labelKey: 'tab_language' as const, icon: '🌐' },
+    { id: 'news' as const, labelKey: 'tab_news' as const, icon: '📰' },
+    { id: 'pomodoro' as const, labelKey: 'tab_pomodoro' as const, icon: '🍅' },
+    { id: 'general' as const, labelKey: 'tab_general' as const, icon: '⚙️' },
   ];
 
   return (
@@ -1023,7 +1199,7 @@ export function SettingsModal() {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-widget-border)]">
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-            Settings
+            {t('settings_title')}
           </h2>
           <button
             onClick={closeSettings}
@@ -1049,7 +1225,7 @@ export function SettingsModal() {
               }`}
             >
               <span>{tab.icon}</span>
-              <span>{tab.label || tab.id}</span>
+              <span>{t(tab.labelKey)}</span>
             </button>
           ))}
         </div>
@@ -1057,9 +1233,10 @@ export function SettingsModal() {
         {/* Content - Increased height for better usability */}
         <div className="p-6 max-h-[70vh] overflow-y-auto">
           {activeTab === 'widgets' && <WidgetsTab />}
+          {activeTab === 'weather' && <WeatherTab />}
+          {activeTab === 'calendar' && <CalendarTab />}
           {activeTab === 'clock' && <ClockTab />}
           {activeTab === 'language' && <LanguageTab />}
-          {activeTab === 'stocks' && <StocksTab />}
           {activeTab === 'news' && <NewsTab />}
           {activeTab === 'general' && <GeneralTab />}
           {activeTab === 'pomodoro' && <PomodoroTab />}

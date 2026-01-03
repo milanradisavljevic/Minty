@@ -1,125 +1,108 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { WidgetWrapper } from './WidgetWrapper';
-import type { CalendarEvent } from '../../types';
 import { getLocale, useTranslation } from '../../i18n';
+import { useSettingsStore } from '../../stores/settingsStore';
 
-function groupEventsByDay(events: CalendarEvent[]) {
-  return events.reduce<Record<string, CalendarEvent[]>>((acc, event) => {
-    const dateKey = new Date(event.start).toDateString();
-    acc[dateKey] = acc[dateKey] || [];
-    acc[dateKey].push(event);
-    return acc;
-  }, {});
+function getWeekdayLabels(locale: string, weekStartsOn: 'monday' | 'sunday') {
+  const formatter = new Intl.DateTimeFormat(locale, { weekday: 'short' });
+  const baseDate = new Date(Date.UTC(2024, 0, 7)); // Sunday
+  const order = weekStartsOn === 'monday' ? [1, 2, 3, 4, 5, 6, 0] : [0, 1, 2, 3, 4, 5, 6];
+  return order.map((day) => {
+    const date = new Date(baseDate);
+    date.setUTCDate(baseDate.getUTCDate() + day);
+    return formatter.format(date);
+  });
+}
+
+function buildMonthDays(year: number, month: number, weekStartsOn: 'monday' | 'sunday') {
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const totalDays = lastDay.getDate();
+  const firstWeekday = firstDay.getDay(); // 0 = Sunday
+  const offset = weekStartsOn === 'monday' ? (firstWeekday + 6) % 7 : firstWeekday;
+  const totalCells = Math.ceil((offset + totalDays) / 7) * 7;
+
+  const cells: (Date | null)[] = [];
+  for (let i = 0; i < offset; i += 1) {
+    cells.push(null);
+  }
+  for (let day = 1; day <= totalDays; day += 1) {
+    cells.push(new Date(year, month, day));
+  }
+  while (cells.length < totalCells) {
+    cells.push(null);
+  }
+  return cells;
 }
 
 export function CalendarWidget() {
-  const { language, t } = useTranslation();
+  const { language } = useTranslation();
   const locale = getLocale(language);
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    async function fetchEvents() {
-      try {
-        const response = await fetch('/api/calendar?days=7');
-        if (!response.ok) throw new Error(t('calendar_error'));
-        const data = await response.json();
-        if (mounted && data.events) {
-          setEvents(data.events);
-          setError(null);
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(err instanceof Error ? err.message : t('calendar_error'));
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-    fetchEvents();
-
-    const interval = setInterval(fetchEvents, 5 * 60 * 1000);
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  if (loading) {
-    return (
-      <WidgetWrapper titleKey="widget_calendar">
-        <div className="flex items-center justify-center h-full text-[var(--color-text-secondary)]">
-          <div className="animate-spin w-8 h-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full mr-3" />
-          <span>{t('calendar_loading')}</span>
-        </div>
-      </WidgetWrapper>
-    );
-  }
-
-  if (error) {
-    return (
-      <WidgetWrapper titleKey="widget_calendar">
-        <div className="flex items-center justify-center h-full text-[var(--color-error)] text-sm">{error}</div>
-      </WidgetWrapper>
-    );
-  }
-
-  const grouped = groupEventsByDay(events.slice(0, 30));
-  const days = Object.keys(grouped)
-    .map((date) => new Date(date))
-    .sort((a, b) => a.getTime() - b.getTime());
+  const weekStartsOn = useSettingsStore((s) => s.calendar?.weekStartsOn ?? 'monday');
+  const today = new Date();
+  const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const weekdayLabels = useMemo(() => getWeekdayLabels(locale, weekStartsOn), [locale, weekStartsOn]);
+  const days = useMemo(
+    () => buildMonthDays(year, month, weekStartsOn),
+    [year, month, weekStartsOn]
+  );
 
   return (
     <WidgetWrapper titleKey="widget_calendar" noPadding>
-      <div className="h-full overflow-y-auto divide-y divide-[var(--color-widget-border)]">
-        {days.length === 0 && (
-          <div className="p-4 text-sm text-[var(--color-text-secondary)]">{t('calendar_empty')}</div>
-        )}
-        {days.map((day) => {
-          const dateKey = day.toDateString();
-          return (
-            <div key={dateKey} className="p-4 space-y-2">
-              <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
-                <span>{day.toLocaleDateString(locale, { weekday: 'long', day: '2-digit', month: '2-digit' })}</span>
-                <span>
-                  {grouped[dateKey].length} {t('calendar_event_count')}
-                </span>
-              </div>
-              <div className="space-y-2">
-                {grouped[dateKey].map((event) => {
-                  const start = new Date(event.start);
-                  const end = new Date(event.end);
-                  const timeLabel = event.allDay
-                    ? t('calendar_all_day')
-                    : `${start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString(locale, {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}`;
-
-                  return (
-                    <div
-                      key={event.id}
-                      className="p-3 rounded-lg bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)]"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-[var(--color-text-primary)]">{event.title}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--color-accent)]/20 text-[var(--color-accent)]">
-                          {event.calendar ?? t('widget_calendar')}
-                        </span>
-                      </div>
-                      <div className="text-xs text-[var(--color-text-secondary)] mt-1">{timeLabel}</div>
-                      {event.location && (
-                        <div className="text-[10px] text-[var(--color-text-secondary)] mt-1 opacity-80">{event.location}</div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+      <div className="p-4 flex flex-col h-full gap-3">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+            className="w-8 h-8 flex items-center justify-center rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
+            aria-label="Previous month"
+          >
+            ‹
+          </button>
+          <div className="text-sm font-semibold text-[var(--color-text-primary)]">
+            {new Date(year, month, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
+          </div>
+          <button
+            onClick={() => setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+            className="w-8 h-8 flex items-center justify-center rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
+            aria-label="Next month"
+          >
+            ›
+          </button>
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-[10px] uppercase tracking-wide text-[var(--color-text-secondary)]">
+          {weekdayLabels.map((label) => (
+            <div key={label} className="text-center">
+              {label}
             </div>
-          );
-        })}
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1 flex-1 auto-rows-fr">
+          {days.map((date, index) => {
+            if (!date) {
+              return <div key={`empty-${index}`} className="h-8" />;
+            }
+
+            const isToday =
+              date.getDate() === today.getDate() &&
+              date.getMonth() === today.getMonth() &&
+              date.getFullYear() === today.getFullYear();
+
+            return (
+              <div
+                key={date.toISOString()}
+                className={`h-8 flex items-center justify-center rounded-md text-sm ${
+                  isToday
+                    ? 'bg-[var(--color-accent)] text-white font-semibold'
+                    : 'text-[var(--color-text-primary)]'
+                }`}
+              >
+                {date.getDate()}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </WidgetWrapper>
   );

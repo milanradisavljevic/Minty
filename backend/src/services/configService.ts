@@ -46,17 +46,6 @@ const DEFAULT_CONFIG: AppConfig = {
   locale: 'de-DE',
   timezone: 'Europe/Vienna',
   dashboard: DEFAULT_DASHBOARD,
-  stocks: {
-    watchlist: [
-      // Magnificent 7
-      'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA',
-      // Commodities
-      'GC=F', 'SI=F',
-      // Crypto
-      'BTC-USD',
-    ],
-    updateInterval: 120000, // 2 minutes to avoid rate limiting
-  },
   news: {
     feeds: [
       { id: 'heise', name: 'Heise', url: 'https://www.heise.de/rss/heise-atom.xml', icon: '💻', enabled: true, colSpan: 1, order: 0 },

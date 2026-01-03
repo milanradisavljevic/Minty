@@ -51,6 +51,12 @@ npm run build
 npm run start
 ```
 
+### Packaging (Electron)
+
+- `npm run package` bzw. `npm run package:linux` baut automatisch Frontend + Backend und kompiliert `better-sqlite3` gegen die aktuelle Electron-Version (Target wird aus `node_modules/electron` gelesen).
+- Der Backend-Prozess läuft im Paket jetzt über die eingebaute Electron-Node (`ELECTRON_RUN_AS_NODE=1`), d.h. keine System-Node-Version ist zur Laufzeit nötig.
+- Falls du nach einem `npm install` mit einer anderen Node-Version packst und wieder ein `NODE_MODULE_VERSION`-Fehler auftaucht: `npm run rebuild:native` ausführen und danach erneut `npm run package`.
+
 ### Tests
 
 ```bash

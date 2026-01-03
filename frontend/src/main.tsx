@@ -4,6 +4,34 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
+// Apply saved transparency as early as possible (before React mounts)
+try {
+  const raw = localStorage.getItem('dashboard-settings')
+  if (raw) {
+    const parsed = JSON.parse(raw)
+    const appearance = parsed?.state?.appearance
+    const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
+    const transparencyEnabled = appearance?.transparencyEnabled !== false
+    const bgOpacity = transparencyEnabled
+      ? clamp01((appearance?.backgroundOpacity ?? 100) / 100)
+      : 1
+    const widgetOpacity = transparencyEnabled
+      ? clamp01((appearance?.widgetOpacity ?? 100) / 100)
+      : 1
+    const root = document.documentElement
+    root.style.setProperty('--transparency-enabled', transparencyEnabled ? '1' : '0')
+    root.style.setProperty('--bg-opacity', bgOpacity.toString())
+    root.style.setProperty('--widget-opacity', widgetOpacity.toString())
+
+    // Set body/html background: opaque when OFF, transparent when ON
+    const bgColor = transparencyEnabled ? 'transparent' : 'var(--color-dashboard-bg)'
+    document.body.style.backgroundColor = bgColor
+    root.style.backgroundColor = bgColor
+  }
+} catch (err) {
+  console.warn('Could not pre-apply transparency settings', err)
+}
+
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;

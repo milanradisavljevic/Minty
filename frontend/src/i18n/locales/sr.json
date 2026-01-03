@@ -36,7 +36,13 @@
     "widgetOpacity": "Prozirnost Vidžeta",
     "enableBlur": "Blur Efekat",
     "blurStrength": "Jačina Blur-a",
-    "transparencyNote": "Prozirnost radi potpuno u desktop aplikaciji. U pretraživačima, efekat je ograničen."
+    "transparency_mode_title": "Režim prozirnosti",
+    "transparency_mode_hint": "Isključi za punu neprozirnost. Uključi za pravu alpha prozirnost.",
+    "transparency_on": "Uključeno",
+    "transparency_off": "Isključeno",
+    "transparencyNote": "Prozirnost radi potpuno u desktop aplikaciji. U pretraživačima, efekat je ograničen.",
+    "transparency_title": "Prozirnost pozadine",
+    "transparency_hint": "0% = potpuno prozirno, 100% = potpuno neprozirno"
   },
   "language": {
     "locale": "Jezik",
@@ -80,6 +86,16 @@
         "Mint: Jer je Ubuntu postao previše mejnstrim.",
         "Baziran na Ubuntu-u. Bolji od Ubuntu-a."
       ],
+      "easterEggs": {
+        "leet": "LEET.",
+        "friday": "Petak! Vreme za... tačno isto kao i uvek.",
+        "uptime": "Ova mašina radi duže od nekih veza."
+      },
+      "systemState": {
+        "highTemp": ["Topim se! Hlađenje!", "Postaje toplo ovde...", "Moglo bi malo hlađenja..."],
+        "highCpu": ["Uh, punom parom!", "Radim naporno...", "Zauzet..."],
+        "highRam": ["Memorija se smanjuje!", "Moglo bi više RAM-a...", "RAM je tijesan..."]
+      },
       "timeOfDay": {
         "morning": ["Kafa... treba mi kafa...", "Već je ponedeljak?"],
         "forenoon": ["Produktivnost! Ili bar pretvaranje.", "Radi glatko~", "Hajde da počnemo."],

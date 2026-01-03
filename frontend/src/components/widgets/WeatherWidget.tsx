@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { WidgetWrapper } from './WidgetWrapper';
 import type { WeatherData } from '../../types';
 import { getLocale, useTranslation } from '../../i18n';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { fetchWeatherData } from '../../utils/weather';
 
 const WEATHER_ICON: Record<number, string> = {
   0: '☀️',
@@ -26,34 +28,50 @@ function getWeatherIcon(code: number) {
 export function WeatherWidget() {
   const { language, t } = useTranslation();
   const locale = getLocale(language);
+  const weatherSettings = useSettingsStore((s) => s.weather);
+  const unitLabel = weatherSettings?.units === 'imperial' ? '°F' : '°C';
+  const locationName = weatherSettings?.locationName?.trim();
+  const latitude = weatherSettings?.latitude ?? 48.2082;
+  const longitude = weatherSettings?.longitude ?? 16.3738;
+  const locationLabel = locationName || t('weather_location_missing');
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
+    const controller = new AbortController();
+
     async function fetchWeather() {
       try {
-        const res = await fetch('/api/weather');
-        if (!res.ok) throw new Error(t('weather_error'));
-        const data = await res.json();
-        if (mounted && data.weather) {
-          setWeather(data.weather);
+        const data = await fetchWeatherData({
+          latitude,
+          longitude,
+          units: weatherSettings?.units ?? 'metric',
+          signal: controller.signal,
+        });
+        if (mounted) {
+          setWeather(data);
           setError(null);
         }
       } catch (err) {
-        if (mounted) setError(err instanceof Error ? err.message : t('weather_unknown_error'));
+        if (mounted && !(err instanceof DOMException && err.name === 'AbortError')) {
+          const message = err instanceof Error ? err.message : t('weather_unknown_error');
+          setError(`${t('weather_error')}: ${message}`);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
     }
+    setLoading(true);
     fetchWeather();
     const interval = setInterval(fetchWeather, 10 * 60 * 1000);
     return () => {
       mounted = false;
+      controller.abort();
       clearInterval(interval);
     };
-  }, []);
+  }, [latitude, longitude, weatherSettings?.units, language]);
 
   if (loading) {
     return (
@@ -83,15 +101,18 @@ export function WeatherWidget() {
           <div className="text-4xl">{getWeatherIcon(weather.weatherCode)}</div>
           <div>
             <div className="text-3xl font-bold text-[var(--color-text-primary)]">
-              {Math.round(weather.temperature)}°C
+              {Math.round(weather.temperature)}
+              {unitLabel}
             </div>
             <div className="text-sm text-[var(--color-text-secondary)]">
-              {t('weather_feels_like')} {Math.round(weather.apparentTemperature)}°C · {t('weather_humidity')}{' '}
+              {t('weather_feels_like')} {Math.round(weather.apparentTemperature)}
+              {unitLabel} · {t('weather_humidity')}{' '}
               {weather.humidity}%
             </div>
             <div className="text-xs text-[var(--color-text-secondary)]">
               {t('weather_wind')} {Math.round(weather.windSpeed)} km/h
             </div>
+            <div className="text-xs text-[var(--color-text-secondary)] mt-1">{locationLabel}</div>
           </div>
         </div>
 

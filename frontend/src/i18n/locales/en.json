@@ -36,7 +36,13 @@
     "widgetOpacity": "Widget Transparency",
     "enableBlur": "Blur Effect",
     "blurStrength": "Blur Strength",
-    "transparencyNote": "Transparency works fully in the desktop app. In browsers, the effect is limited."
+    "transparency_mode_title": "Transparency Mode",
+    "transparency_mode_hint": "Turn off for full opacity everywhere. Turn on to adjust alpha transparency.",
+    "transparency_on": "On",
+    "transparency_off": "Off",
+    "transparencyNote": "Transparency works fully in the desktop app. In browsers, the effect is limited.",
+    "transparency_title": "Background Transparency",
+    "transparency_hint": "0% = fully transparent, 100% = fully opaque"
   },
   "language": {
     "locale": "Language",
@@ -80,6 +86,16 @@
         "Mint: Because Ubuntu became too mainstream.",
         "Based on Ubuntu. Better than Ubuntu."
       ],
+      "easterEggs": {
+        "leet": "LEET.",
+        "friday": "Friday! Time for... exactly the same as always.",
+        "uptime": "This machine has been running longer than some relationships."
+      },
+      "systemState": {
+        "highTemp": ["I'm melting! Cooling!", "Getting warm in here...", "Could use some cooling..."],
+        "highCpu": ["Whew, full throttle!", "Working hard...", "Busy..."],
+        "highRam": ["Memory is getting tight!", "Could use more RAM...", "RAM is cramped..."]
+      },
       "timeOfDay": {
         "morning": ["Coffee... need coffee...", "Is it Monday already?"],
         "forenoon": ["Productivity! Or at least pretending.", "Running smooth~", "Let's get this bread."],

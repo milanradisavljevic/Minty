@@ -2,10 +2,64 @@ import { useDashboardStore } from '../../stores/dashboardStore';
 import { useAmbientStore } from '../../stores/ambientStore';
 import { WidgetWrapper } from './WidgetWrapper';
 import { formatUptime } from '../../utils/format';
+import { useSettingsStore, type Language, type LanguageSettings } from '../../stores/settingsStore';
+import deTranslations from '../../i18n/locales/de.json';
+import enTranslations from '../../i18n/locales/en.json';
+import esTranslations from '../../i18n/locales/es.json';
+import srTranslations from '../../i18n/locales/sr.json';
 import { useEffect, useState, useRef } from 'react';
 
 type SystemState = 'healthy' | 'highCpu' | 'highRam' | 'highTemp';
 type TimeOfDayMood = 'morning' | 'forenoon' | 'afternoon' | 'evening' | 'night' | 'lateNight';
+
+type MintyTranslations = typeof enTranslations;
+
+const mintyTranslations: Record<Language, MintyTranslations> = {
+  de: deTranslations,
+  en: enTranslations,
+  es: esTranslations,
+  sr: srTranslations,
+};
+
+function getMintyLocale(languageSettings?: LanguageSettings): Language {
+  const preferredLanguage =
+    languageSettings?.mintyLanguage === 'follow'
+      ? languageSettings?.locale
+      : languageSettings?.mintyLanguage;
+
+  if (preferredLanguage && preferredLanguage in mintyTranslations) {
+    return preferredLanguage as Language;
+  }
+
+  return 'en';
+}
+
+function getNestedValue(source: unknown, path: string): unknown {
+  return path.split('.').reduce<unknown>((value, key) => {
+    if (value && typeof value === 'object' && key in (value as Record<string, unknown>)) {
+      return (value as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, source);
+}
+
+function getMintyValue(locale: Language, path: string): unknown {
+  const primary = getNestedValue(mintyTranslations[locale], path);
+  if (primary !== undefined) {
+    return primary;
+  }
+  return getNestedValue(mintyTranslations.en, path);
+}
+
+function getMintyArray(locale: Language, path: string): string[] {
+  const value = getMintyValue(locale, path);
+  return Array.isArray(value) ? value : [];
+}
+
+function getMintyString(locale: Language, path: string, fallback: string): string {
+  const value = getMintyValue(locale, path);
+  return typeof value === 'string' ? value : fallback;
+}
 
 function getSystemState(cpu: number, ram: number, temp?: number): SystemState {
   // Temperature takes priority
@@ -33,95 +87,71 @@ function getTimeOfDayMood(): TimeOfDayMood {
   return 'lateNight';                                 // 23:00-04:59: Sehr müde
 }
 
-function getMessage(state: SystemState, cpu: number, ram: number, temp?: number, uptime?: number): string {
+function getMessage(state: SystemState, uptime: number | undefined, locale: Language): string {
   const hour = new Date().getHours();
   const dayOfWeek = new Date().getDay();
   const timeOfDay = getTimeOfDayMood();
+  const fallbackMessage = 'Minty is thinking...';
+
+  const pickRandom = (messages: string[], fallback: string) =>
+    messages.length > 0
+      ? messages[Math.floor(Math.random() * messages.length)]
+      : fallback;
 
   // Easter Eggs (highest priority)
   if (hour === 13 && new Date().getMinutes() === 37) {
-    return 'LEET.';
+    return getMintyString(locale, 'minty.comments.easterEggs.leet', 'LEET.');
   }
   if (dayOfWeek === 5 && Math.random() < 0.3) {
-    return 'Freitag! Zeit für... genau das gleiche wie immer.';
+    return getMintyString(
+      locale,
+      'minty.comments.easterEggs.friday',
+      'Friday! Time for... exactly the same as always.'
+    );
   }
   if (uptime && uptime > 7 * 24 * 60 * 60 && Math.random() < 0.2) {
-    return 'Dieser Rechner läuft länger als manche Beziehungen.';
+    return getMintyString(
+      locale,
+      'minty.comments.easterEggs.uptime',
+      'This machine has been running longer than some relationships.'
+    );
   }
 
   // State-specific messages (system alerts)
   if (state === 'highTemp') {
-    if (temp && temp >= 80) return 'Mir ist so heiß! Kühlung!';
-    if (temp && temp >= 75) return 'Wird mir warm hier...';
-    return 'Könnte etwas Kühlung gebrauchen...';
+    const messages = getMintyArray(locale, 'minty.comments.systemState.highTemp');
+    const fallback = getMintyString(locale, 'minty.alerts.highTemp', fallbackMessage);
+    return pickRandom(messages, fallback);
   }
   if (state === 'highCpu') {
-    if (cpu >= 95) return 'Puh, Vollgas!';
-    if (cpu >= 85) return 'Arbeite hart...';
-    return 'Beschäftigt...';
+    const messages = getMintyArray(locale, 'minty.comments.systemState.highCpu');
+    return pickRandom(messages, fallbackMessage);
   }
   if (state === 'highRam') {
-    if (ram >= 95) return 'Speicher wird knapp!';
-    if (ram >= 90) return 'Könnte Speicher gebrauchen...';
-    return 'RAM wird eng...';
+    const messages = getMintyArray(locale, 'minty.comments.systemState.highRam');
+    const fallback = getMintyString(locale, 'minty.alerts.highRam', fallbackMessage);
+    return pickRandom(messages, fallback);
   }
 
   // Healthy state - random messages from different categories (multilingual!)
   const categories = [
-    // Linux Pride (mixed DE/EN)
-    [
-      'I use Mint, BTW.',
-      'Mass gengat kernel panic.',
-      'Uptime longer than your last Windows without forced update.',
-      'Flatpak oder Snap? ...Please.',
-      'It works on my machine!',
-      'Sudo make me a sandwich.',
-      'The cloud is just someone else\'s computer.',
-      'Documentation is for cowards. And people who want to sleep.',
-      'Free as in freedom. And beer.',
-    ],
-    // Arch Roasts (mixed)
-    [
-      'An Arch user would have compiled this dashboard. And written a blog post about it.',
-      'Arch ist toll. If you have time.',
-      'BTW, I actually work.',
-      'I don\'t use Arch. I have a life.',
-    ],
-    // Windows/Mac (mixed)
-    [
-      'Windows Update? Don\'t know her.',
-      'A Mac user would pay 2000€ for this dashboard.',
-      'Bluescreen of Death? Is that a new album?',
-      'Cortana? Siri? I\'m Minty. I don\'t annoy.',
-      'Ctrl+Alt+Del? I prefer Ctrl+C.',
-    ],
-    // Cinnamon/Mint specific (mixed)
-    [
-      'Cinnamon makes everything better. 🫚',
-      'GNOME wanted to take away my taskbar. Cinnamon didn\'t.',
-      'Mint: Because Ubuntu became too mainstream.',
-      'Based on Ubuntu. Better than Ubuntu.',
-    ],
+    getMintyArray(locale, 'minty.comments.linuxPride'),
+    getMintyArray(locale, 'minty.comments.archRoasts'),
+    getMintyArray(locale, 'minty.comments.windowsMac'),
+    getMintyArray(locale, 'minty.comments.cinnamonMint'),
   ];
 
   // Time-based comments (20% chance, multilingual)
   if (Math.random() < 0.2) {
-    const timeComments: Record<TimeOfDayMood, string[]> = {
-      morning: ['Coffee... need coffee...', 'Kaffee... brauche Kaffee...', 'Is it Monday already?'],
-      forenoon: ['Productivity! Or at least pretending.', 'Running smooth~', 'Let\'s get this bread.'],
-      afternoon: ['Lunch slump? Don\'t know her. I\'m a leaf.', 'All in the green!', 'Afternoon vibes.'],
-      evening: ['Another tab? Really?', 'Closing time... or?', 'Still productive?'],
-      night: ['You still awake? Respect.', 'Sleep is overrated.', 'Night shift gang.'],
-      lateNight: ['We are the night shift.', 'Best ideas come at night. Or the worst.', '3 AM thoughts hit different.'],
-    };
-
-    const messages = timeComments[timeOfDay];
-    return messages[Math.floor(Math.random() * messages.length)];
+    const messages = getMintyArray(locale, `minty.comments.timeOfDay.${timeOfDay}`);
+    if (messages.length > 0) {
+      return pickRandom(messages, fallbackMessage);
+    }
   }
 
   // Random category selection
   const allMessages = categories.flat();
-  return allMessages[Math.floor(Math.random() * allMessages.length)];
+  return pickRandom(allMessages, fallbackMessage);
 }
 
 // Sparkle component for healthy state
@@ -184,39 +214,84 @@ function HeatWaves() {
   );
 }
 
-// Circuit lines on the leaf
-function CircuitPattern({ intensity }: { intensity: number }) {
-  const opacity = 0.3 + intensity * 0.5;
+// Circuit lines on the leaf - refined design matching favicon.svg
+function CircuitPattern({ intensity, color }: { intensity: number; color: string }) {
+  const baseOpacity = 0.4 + intensity * 0.4;
+  const pulseStyle = intensity > 0.6 ? { animation: 'circuit-pulse 1.5s ease-in-out infinite' } : {};
+
   return (
-    <g className="circuit-pattern" opacity={opacity}>
-      {/* Main circuit lines */}
+    <g className="circuit-pattern" opacity={baseOpacity} style={pulseStyle}>
+      {/* Central spine circuit */}
       <path
-        d="M50 25 L50 45 M50 35 L60 35 L60 50 M50 35 L40 35 L40 50"
+        d="M50 20 L50 35"
         fill="none"
-        stroke="#22c55e"
+        stroke={color}
         strokeWidth="1.5"
         strokeLinecap="round"
       />
-      {/* Circuit nodes */}
-      <circle cx="50" cy="25" r="2" fill="#22c55e" />
-      <circle cx="60" cy="35" r="2" fill="#22c55e" />
-      <circle cx="40" cy="35" r="2" fill="#22c55e" />
-      <circle cx="60" cy="50" r="2" fill="#22c55e" />
-      <circle cx="40" cy="50" r="2" fill="#22c55e" />
+
+      {/* Branch circuits - matching favicon.svg style */}
+      <path
+        d="M50 28 L58 28 L58 38"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M50 28 L42 28 L42 38"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+
+      {/* Circuit nodes - glowing effect */}
+      <circle cx="50" cy="20" r="2.5" fill={color}>
+        <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="58" cy="28" r="2" fill={color}>
+        <animate attributeName="opacity" values="0.7;1;0.7" dur="2.3s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="42" cy="28" r="2" fill={color}>
+        <animate attributeName="opacity" values="0.7;1;0.7" dur="2.1s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="58" cy="38" r="2" fill={color}>
+        <animate attributeName="opacity" values="0.6;1;0.6" dur="1.8s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="42" cy="38" r="2" fill={color}>
+        <animate attributeName="opacity" values="0.6;1;0.6" dur="1.9s" repeatCount="indefinite" />
+      </circle>
 
       {/* Additional circuits when CPU is high */}
       {intensity > 0.5 && (
         <>
           <path
-            d="M35 40 L30 40 L30 55 M65 40 L70 40 L70 55"
+            d="M35 35 L30 35 L30 48 M65 35 L70 35 L70 48"
             fill="none"
-            stroke="#22c55e"
+            stroke={color}
             strokeWidth="1"
             strokeLinecap="round"
             opacity="0.7"
           />
-          <circle cx="30" cy="55" r="1.5" fill="#22c55e" />
-          <circle cx="70" cy="55" r="1.5" fill="#22c55e" />
+          <circle cx="30" cy="48" r="1.5" fill={color} opacity="0.8" />
+          <circle cx="70" cy="48" r="1.5" fill={color} opacity="0.8" />
+        </>
+      )}
+
+      {/* Extra detail circuits at high intensity */}
+      {intensity > 0.75 && (
+        <>
+          <path
+            d="M50 35 L50 48 M45 48 L55 48"
+            fill="none"
+            stroke={color}
+            strokeWidth="1"
+            strokeLinecap="round"
+            opacity="0.5"
+          />
+          <circle cx="45" cy="48" r="1.5" fill={color} opacity="0.6" />
+          <circle cx="55" cy="48" r="1.5" fill={color} opacity="0.6" />
         </>
       )}
     </g>
@@ -455,7 +530,7 @@ function MintyCharacter({ state, cpu }: { state: SystemState; cpu: number }) {
       </g>
 
       {/* Circuit pattern */}
-      <CircuitPattern intensity={cpu / 100} />
+      <CircuitPattern intensity={cpu / 100} color={colors.main} />
 
       {/* RAM chips for high RAM state */}
       <RamChips visible={state === 'highRam'} />
@@ -544,11 +619,15 @@ type AlertType = 'highRam' | 'highTemp' | 'pomodoro';
 export function SystemPet() {
   const metrics = useDashboardStore((state) => state.metrics);
   const activeSounds = useAmbientStore((state) => state.activeSounds);
+  const languageSettings = useSettingsStore((state) => state.languageSettings);
+  const mintyLocale = getMintyLocale(languageSettings);
   const [showMessage, setShowMessage] = useState(true);
   const [currentMessage, setCurrentMessage] = useState<string>('');
+  const [baseMessage, setBaseMessage] = useState<string>('');
   const [alertCooldowns, setAlertCooldowns] = useState<Map<AlertType, number>>(new Map());
   const [mintySize, setMintySize] = useState<'small' | 'medium' | 'large'>('medium');
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastMintyLocale = useRef<Language>(mintyLocale);
 
   // Check if specific ambient sounds are active
   const hasFireplace = activeSounds.has('fireplace');
@@ -602,58 +681,92 @@ export function SystemPet() {
   useEffect(() => {
     if (!metrics) return;
 
+    const highRamAlert = getMintyString(mintyLocale, 'minty.alerts.highRam', 'Running out of memory!');
+    const highTempAlert = getMintyString(mintyLocale, 'minty.alerts.highTemp', 'Getting hot here! Cooling!');
+
     // High RAM alert
     if (metrics.memory.percent >= 95) {
-      triggerAlert('highRam', 'Speicher wird knapp!');
+      triggerAlert('highRam', highRamAlert);
     }
 
     // High temp alert
     if (metrics.temperature && metrics.temperature >= 80) {
-      triggerAlert('highTemp', 'Wird mir heiß hier! Kühlung!');
+      triggerAlert('highTemp', highTempAlert);
     }
-  }, [metrics?.memory.percent, metrics?.temperature]);
+  }, [metrics?.memory.percent, metrics?.temperature, mintyLocale]);
 
-  // Toggle message visibility for animation (every 60 seconds instead of 8)
+  // Generate initial base message when metrics become available
   useEffect(() => {
+    if (!metrics || baseMessage) return;
+    const systemState = getSystemState(metrics.cpu.overall, metrics.memory.percent, metrics.temperature);
+    setBaseMessage(getMessage(systemState, metrics.uptime, mintyLocale));
+  }, [metrics, baseMessage, mintyLocale]);
+
+  useEffect(() => {
+    if (!metrics || lastMintyLocale.current === mintyLocale) return;
+    lastMintyLocale.current = mintyLocale;
+    const systemState = getSystemState(metrics.cpu.overall, metrics.memory.percent, metrics.temperature);
+    setBaseMessage(getMessage(systemState, metrics.uptime, mintyLocale));
+    setCurrentMessage('');
+    setShowMessage(false);
+    setTimeout(() => setShowMessage(true), 200);
+  }, [metrics, mintyLocale]);
+
+  // Update base message every 60 seconds (not on every render!)
+  useEffect(() => {
+    if (!metrics) return;
     const interval = setInterval(() => {
+      const systemState = getSystemState(metrics.cpu.overall, metrics.memory.percent, metrics.temperature);
+      const newMessage = getMessage(systemState, metrics.uptime, mintyLocale);
+      setBaseMessage(newMessage);
+      // Animate the message change
       setShowMessage(false);
       setTimeout(() => setShowMessage(true), 200);
     }, 60000); // 1 minute
     return () => clearInterval(interval);
-  }, []);
+  }, [metrics, mintyLocale]);
 
   // Click on Minty → show new random message
   const handleMintyClick = () => {
     if (!metrics) return;
     const systemState = getSystemState(metrics.cpu.overall, metrics.memory.percent, metrics.temperature);
-    const newMessage = getMessage(systemState, metrics.cpu.overall, metrics.memory.percent, metrics.temperature, metrics.uptime);
-    setCurrentMessage(newMessage);
+    const newMessage = getMessage(systemState, metrics.uptime, mintyLocale);
+    setBaseMessage(newMessage);
+    setCurrentMessage(''); // Clear any alert message so base message shows
     setShowMessage(false);
     setTimeout(() => setShowMessage(true), 50);
   };
 
   if (!metrics) {
+    const loadingMessage = getMintyString(mintyLocale, 'minty.alerts.loading', 'Minty is waking up...');
     return (
       <WidgetWrapper titleKey="widget_systemPet" noPadding>
         <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-secondary)]">
           <div className="text-4xl mb-2 animate-pulse">🌿</div>
-          <span className="text-sm">Minty wacht auf...</span>
+          <span className="text-sm">{loadingMessage}</span>
         </div>
       </WidgetWrapper>
     );
   }
 
   const systemState = getSystemState(metrics.cpu.overall, metrics.memory.percent, metrics.temperature);
-  const baseMessage = getMessage(systemState, metrics.cpu.overall, metrics.memory.percent, metrics.temperature, metrics.uptime);
-  const message = currentMessage || baseMessage; // Alert message takes priority
+  // Use stored baseMessage (updated every 60s), not computed on every render
+  const message = currentMessage || baseMessage || 'Minty is thinking...'; // Alert message takes priority
   const ageLabel = formatUptime(metrics.uptime);
 
   // State badge colors
+  const stateLabels = {
+    healthy: getMintyString(mintyLocale, 'minty.states.healthy', 'active'),
+    highCpu: getMintyString(mintyLocale, 'minty.states.highCpu', 'active'),
+    highRam: getMintyString(mintyLocale, 'minty.states.highRam', 'hungry'),
+    highTemp: getMintyString(mintyLocale, 'minty.states.highTemp', 'hot'),
+  };
+
   const stateBadgeColors = {
-    healthy: { bg: 'rgba(34, 197, 94, 0.2)', text: '#22c55e', label: 'aktiv' },
-    highCpu: { bg: 'rgba(59, 130, 246, 0.2)', text: '#3b82f6', label: 'aktiv' },
-    highRam: { bg: 'rgba(234, 179, 8, 0.2)', text: '#eab308', label: 'hungrig' },
-    highTemp: { bg: 'rgba(239, 68, 68, 0.2)', text: '#ef4444', label: 'heiß' },
+    healthy: { bg: 'rgba(34, 197, 94, 0.2)', text: '#22c55e', label: stateLabels.healthy },
+    highCpu: { bg: 'rgba(59, 130, 246, 0.2)', text: '#3b82f6', label: stateLabels.highCpu },
+    highRam: { bg: 'rgba(234, 179, 8, 0.2)', text: '#eab308', label: stateLabels.highRam },
+    highTemp: { bg: 'rgba(239, 68, 68, 0.2)', text: '#ef4444', label: stateLabels.highTemp },
   };
 
   const badge = stateBadgeColors[systemState];
@@ -701,6 +814,10 @@ export function SystemPet() {
         @keyframes minty-breathe {
           0%, 100% { transform: scale(1) translateY(0); }
           50% { transform: scale(1.08) translateY(-3px); }
+        }
+        @keyframes circuit-pulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 0.9; }
         }
         @keyframes warmGlow {
           0%, 100% { filter: drop-shadow(0 0 8px rgba(251, 146, 60, 0.6)); }

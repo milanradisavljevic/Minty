@@ -5,7 +5,7 @@ import type * as RGL from 'react-grid-layout';
 import { useDashboardStore } from '../stores/dashboardStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useSocket } from '../hooks/useSocket';
-import { StockTickerBar } from '../stocks/StockTickerBar';
+import { TipOfTheDay } from './TipOfTheDay';
 import { TimelineBar } from './TimelineBar';
 import { SettingsModal } from './SettingsModal';
 import { WidgetContextMenu } from './WidgetContextMenu';
@@ -67,6 +67,7 @@ export function Dashboard() {
   const openSettings = useSettingsStore((state) => state.openSettings);
   const widgetSettings = useSettingsStore((state) => state.widgets ?? []);
   const generalTheme = useSettingsStore((state) => state.general?.theme ?? 'dark');
+  const appearance = useSettingsStore((state) => state.appearance ?? { backgroundOpacity: 100, widgetOpacity: 100, transparencyEnabled: true, enableBlur: false, blurStrength: 10 });
 
   // Window dimensions for responsive grid
   const [dimensions, setDimensions] = useState({
@@ -221,10 +222,41 @@ export function Dashboard() {
     document.documentElement.style.colorScheme = generalTheme === 'light' ? 'light' : 'dark';
   }, [generalTheme, setDashboardTheme]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+    const transparencyEnabled = appearance.transparencyEnabled !== false;
+    const bgOpacity = transparencyEnabled ? clamp01(appearance.backgroundOpacity / 100) : 1;
+    const widgetOpacity = transparencyEnabled ? clamp01(appearance.widgetOpacity / 100) : 1;
+
+    root.style.setProperty('--transparency-enabled', transparencyEnabled ? '1' : '0');
+    root.style.setProperty('--bg-opacity', bgOpacity.toString());
+    root.style.setProperty('--widget-opacity', widgetOpacity.toString());
+
+    // Set body/html background based on transparency toggle
+    // When OFF: use opaque theme color; when ON: transparent for wallpaper shine-through
+    const bgColor = transparencyEnabled ? 'transparent' : 'var(--color-dashboard-bg)';
+    document.body.style.backgroundColor = bgColor;
+    root.style.backgroundColor = bgColor;
+  }, [appearance.backgroundOpacity, appearance.widgetOpacity, appearance.transparencyEnabled]);
+
+  const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+  const transparencyEnabled = appearance.transparencyEnabled !== false;
+  const bgOpacity = transparencyEnabled ? clamp01(appearance.backgroundOpacity / 100) : 1;
+  const widgetOpacity = transparencyEnabled ? clamp01(appearance.widgetOpacity / 100) : 1;
+
   return (
-    <div className="w-full h-screen flex flex-col bg-[var(--color-dashboard-bg)]">
-      {/* Stock Ticker Bar - Top */}
-      <StockTickerBar />
+    <div
+      className="w-full h-screen flex flex-col bg-[var(--color-dashboard-bg)]"
+      style={{
+        ['--bg-opacity' as string]: bgOpacity,
+        ['--widget-opacity' as string]: widgetOpacity,
+        ['--transparency-enabled' as string]: transparencyEnabled ? 1 : 0,
+        backgroundColor: 'rgba(0,0,0,0)',
+      }}
+    >
+      {/* Tip of the Day - Top */}
+      <TipOfTheDay />
 
       {/* Settings Modal */}
       <SettingsModal />

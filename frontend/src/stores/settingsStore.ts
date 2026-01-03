@@ -8,11 +8,6 @@ export interface WidgetSettings {
 
 export type Language = 'de' | 'en' | 'es' | 'sr';
 
-export interface StockSettings {
-  watchlist: string[];
-  updateInterval: number;
-}
-
 export interface ClockSettings {
   timeFormat: '24h' | '12h' | 'system';
   showSeconds: boolean;
@@ -24,7 +19,8 @@ export interface ClockSettings {
 
 export interface AppearanceSettings {
   backgroundOpacity: number; // 0-100
-  widgetOpacity: number; // 0-50
+  widgetOpacity: number; // 0-100 (direct alpha for widgets)
+  transparencyEnabled: boolean;
   enableBlur: boolean;
   blurStrength: number; // 5-30px
 }
@@ -51,18 +47,39 @@ export interface NewsSettings {
   feedColSpan: Record<string, number>; // feedId -> column span (1-4)
 }
 
+export interface WeatherSettings {
+  latitude: number;
+  longitude: number;
+  units: 'metric' | 'imperial';
+  locationName: string;
+}
+
+export interface CalendarSettings {
+  weekStartsOn: 'monday' | 'sunday';
+}
+
 interface SettingsState {
   isOpen: boolean;
-  activeTab: 'widgets' | 'stocks' | 'news' | 'general' | 'pomodoro' | 'clock' | 'appearance' | 'language';
+  activeTab:
+    | 'widgets'
+    | 'news'
+    | 'general'
+    | 'pomodoro'
+    | 'clock'
+    | 'appearance'
+    | 'language'
+    | 'weather'
+    | 'calendar';
 
   widgets: WidgetSettings[];
-  stocks: StockSettings;
   news: NewsSettings;
   general: GeneralSettings;
   pomodoro: PomodoroSettings;
   clock: ClockSettings;
   appearance: AppearanceSettings;
   languageSettings: LanguageSettings;
+  weather: WeatherSettings;
+  calendar: CalendarSettings;
 
   // Actions
   openSettings: () => void;
@@ -71,10 +88,6 @@ interface SettingsState {
 
   toggleWidget: (id: string) => void;
   setWidgets: (widgets: WidgetSettings[]) => void;
-
-  addStock: (symbol: string) => void;
-  removeStock: (symbol: string) => void;
-  setStockUpdateInterval: (interval: number) => void;
 
   setFeedColSpan: (feedId: string, colSpan: number) => void;
 
@@ -86,6 +99,8 @@ interface SettingsState {
   setClockSettings: (settings: Partial<ClockSettings>) => void;
   setAppearanceSettings: (settings: Partial<AppearanceSettings>) => void;
   setLanguageSettings: (settings: Partial<LanguageSettings>) => void;
+  setWeatherSettings: (settings: Partial<WeatherSettings>) => void;
+  setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
 }
 
 const DEFAULT_WIDGETS: WidgetSettings[] = [
@@ -102,14 +117,6 @@ const DEFAULT_WIDGETS: WidgetSettings[] = [
   { id: 'system', enabled: true },
   { id: 'pomodoro', enabled: false },
 ];
-
-const DEFAULT_STOCKS: StockSettings = {
-  watchlist: [
-    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA',
-    'GC=F', 'SI=F', 'BTC-USD',
-  ],
-  updateInterval: 120000,
-};
 
 const DEFAULT_GENERAL: GeneralSettings = {
   language: 'de',
@@ -133,6 +140,17 @@ const DEFAULT_NEWS: NewsSettings = {
   },
 };
 
+const DEFAULT_WEATHER: WeatherSettings = {
+  latitude: 48.2082,
+  longitude: 16.3738,
+  units: 'metric',
+  locationName: '',
+};
+
+const DEFAULT_CALENDAR: CalendarSettings = {
+  weekStartsOn: 'monday',
+};
+
 const DEFAULT_CLOCK: ClockSettings = {
   timeFormat: 'system',
   showSeconds: true,
@@ -144,7 +162,8 @@ const DEFAULT_CLOCK: ClockSettings = {
 
 const DEFAULT_APPEARANCE: AppearanceSettings = {
   backgroundOpacity: 100, // 100 = fully opaque (no transparency)
-  widgetOpacity: 0, // 0 = no transparency
+  widgetOpacity: 100, // 100 = fully opaque widgets
+  transparencyEnabled: true,
   enableBlur: false,
   blurStrength: 10,
 };
@@ -161,13 +180,14 @@ export const useSettingsStore = create<SettingsState>()(
       activeTab: 'widgets',
 
       widgets: DEFAULT_WIDGETS,
-      stocks: DEFAULT_STOCKS,
       news: DEFAULT_NEWS,
       general: DEFAULT_GENERAL,
       pomodoro: DEFAULT_POMODORO,
       clock: DEFAULT_CLOCK,
       appearance: DEFAULT_APPEARANCE,
       languageSettings: DEFAULT_LANGUAGE,
+      weather: DEFAULT_WEATHER,
+      calendar: DEFAULT_CALENDAR,
 
       openSettings: () => set({ isOpen: true }),
       closeSettings: () => set({ isOpen: false }),
@@ -181,32 +201,6 @@ export const useSettingsStore = create<SettingsState>()(
         })),
 
       setWidgets: (widgets) => set({ widgets }),
-
-      addStock: (symbol) =>
-        set((state) => {
-          const upper = symbol.toUpperCase().trim();
-          const currentWatchlist = state.stocks?.watchlist ?? DEFAULT_STOCKS.watchlist;
-          if (!upper || currentWatchlist.includes(upper)) return state;
-          return {
-            stocks: {
-              ...(state.stocks || DEFAULT_STOCKS),
-              watchlist: [...currentWatchlist, upper],
-            },
-          };
-        }),
-
-      removeStock: (symbol) =>
-        set((state) => ({
-          stocks: {
-            ...(state.stocks || DEFAULT_STOCKS),
-            watchlist: (state.stocks?.watchlist ?? DEFAULT_STOCKS.watchlist).filter((s) => s !== symbol),
-          },
-        })),
-
-      setStockUpdateInterval: (interval) =>
-        set((state) => ({
-          stocks: { ...(state.stocks || DEFAULT_STOCKS), updateInterval: interval },
-        })),
 
       setFeedColSpan: (feedId, colSpan) =>
         set((state) => ({
@@ -252,12 +246,22 @@ export const useSettingsStore = create<SettingsState>()(
           // Also update general.language for backwards compatibility
           ...(settings.locale && { general: { ...(state.general || DEFAULT_GENERAL), language: settings.locale } }),
         })),
+
+      setWeatherSettings: (settings) =>
+        set((state) => ({
+          weather: { ...(state.weather || DEFAULT_WEATHER), ...settings },
+        })),
+
+      setCalendarSettings: (settings) =>
+        set((state) => ({
+          calendar: { ...(state.calendar || DEFAULT_CALENDAR), ...settings },
+        })),
     }),
     {
       name: 'dashboard-settings',
-      version: 4, // Incremented for new clock, appearance, language settings
+      version: 7, // Incremented for transparency toggle + widget alpha semantics
       migrate: (state: any, version: number) => {
-        console.log(`[Settings] Migrating from version ${version} to 4`);
+        console.log(`[Settings] Migrating from version ${version} to 7`);
 
         try {
           // Start with a safe baseline
@@ -268,15 +272,6 @@ export const useSettingsStore = create<SettingsState>()(
             ? next.widgets
             : DEFAULT_WIDGETS;
           next.widgets = (next.widgets || []).filter((w) => w.id !== 'notionTasks');
-
-          // Stocks: merge with defaults, ensure watchlist exists
-          next.stocks = {
-            ...DEFAULT_STOCKS,
-            ...(next.stocks || {}),
-          };
-          if (!next.stocks.watchlist || next.stocks.watchlist.length === 0) {
-            next.stocks.watchlist = DEFAULT_STOCKS.watchlist;
-          }
 
           // News: merge with defaults
           next.news = { ...DEFAULT_NEWS, ...(next.news || {}) };
@@ -296,9 +291,27 @@ export const useSettingsStore = create<SettingsState>()(
 
           // NEW: Appearance settings (added in v4)
           next.appearance = { ...DEFAULT_APPEARANCE, ...(next.appearance || {}) };
+          // v7: introduce transparencyEnabled + change widgetOpacity to direct alpha (0-100)
+          const rawBg = next.appearance?.backgroundOpacity ?? DEFAULT_APPEARANCE.backgroundOpacity;
+          const rawWidget = next.appearance?.widgetOpacity ?? DEFAULT_APPEARANCE.widgetOpacity;
+          const oldBg = Math.min(1, Math.max(0, rawBg / 100));
+          // Old widgetOpacity was an additive boost capped at 0.5
+          const oldBoost = Math.min(0.5, Math.max(0, rawWidget / 100));
+          const derivedWidgetAlpha = Math.min(1, oldBg + oldBoost);
+          next.appearance.backgroundOpacity = Math.round(oldBg * 100);
+          next.appearance.widgetOpacity = Math.round(derivedWidgetAlpha * 100);
+          if (next.appearance.transparencyEnabled === undefined) {
+            next.appearance.transparencyEnabled = true;
+          }
 
           // NEW: Language settings (added in v4)
           next.languageSettings = { ...DEFAULT_LANGUAGE, ...(next.languageSettings || {}) };
+
+          // NEW: Weather settings (added in v5)
+          next.weather = { ...DEFAULT_WEATHER, ...(next.weather || {}) };
+
+          // NEW: Calendar settings (added in v5)
+          next.calendar = { ...DEFAULT_CALENDAR, ...(next.calendar || {}) };
 
           // Sync languageSettings.locale with general.language for backwards compatibility
           if (next.general && next.general.language) {
@@ -316,13 +329,14 @@ export const useSettingsStore = create<SettingsState>()(
             isOpen: false,
             activeTab: 'widgets',
             widgets: DEFAULT_WIDGETS,
-            stocks: DEFAULT_STOCKS,
             news: DEFAULT_NEWS,
             general: DEFAULT_GENERAL,
             pomodoro: DEFAULT_POMODORO,
             clock: DEFAULT_CLOCK,
             appearance: DEFAULT_APPEARANCE,
             languageSettings: DEFAULT_LANGUAGE,
+            weather: DEFAULT_WEATHER,
+            calendar: DEFAULT_CALENDAR,
           } as SettingsState;
         }
       },

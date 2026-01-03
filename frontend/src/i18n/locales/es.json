@@ -36,7 +36,13 @@
     "widgetOpacity": "Transparencia de Widgets",
     "enableBlur": "Efecto Blur",
     "blurStrength": "Intensidad del Blur",
-    "transparencyNote": "La transparencia funciona completamente en la aplicación de escritorio. En navegadores, el efecto es limitado."
+    "transparency_mode_title": "Modo de transparencia",
+    "transparency_mode_hint": "Apaga para opacidad total. Enciende para transparencia real con alpha.",
+    "transparency_on": "Activado",
+    "transparency_off": "Desactivado",
+    "transparencyNote": "La transparencia funciona completamente en la aplicación de escritorio. En navegadores, el efecto es limitado.",
+    "transparency_title": "Transparencia del fondo",
+    "transparency_hint": "0% = completamente transparente, 100% = completamente opaco"
   },
   "language": {
     "locale": "Idioma",
@@ -80,6 +86,16 @@
         "Mint: Porque Ubuntu se volvió demasiado mainstream.",
         "Basado en Ubuntu. Mejor que Ubuntu."
       ],
+      "easterEggs": {
+        "leet": "LEET.",
+        "friday": "¡Viernes! Hora de... exactamente lo mismo de siempre.",
+        "uptime": "Esta máquina ha estado funcionando más tiempo que algunas relaciones."
+      },
+      "systemState": {
+        "highTemp": ["¡Me estoy derritiendo! ¡Refrigeración!", "Se está calentando aquí...", "Podría usar algo de refrigeración..."],
+        "highCpu": ["¡Uf, a toda máquina!", "Trabajando duro...", "Ocupado..."],
+        "highRam": ["¡La memoria se está agotando!", "Podría usar más RAM...", "RAM limitada..."]
+      },
       "timeOfDay": {
         "morning": ["Café... necesito café...", "¿Ya es lunes?"],
         "forenoon": ["¡Productividad! O al menos fingir.", "Funcionando suave~", "Vamos a por ello."],

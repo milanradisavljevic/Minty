@@ -1,19 +1,70 @@
 {
-  "name": "ultrawide-dashboard",
+  "name": "minty-dashboard",
   "version": "1.0.0",
-  "description": "Personal Dashboard for Super-Ultrawide Monitors",
+  "description": "Personal dashboard for Linux Mint with Minty mascot",
   "private": true,
+  "main": "electron/main.js",
+  "author": "Your Name",
+  "license": "MIT",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
-    "build": "npm run build:backend && npm run build:frontend",
+    "dev:electron": "concurrently \"PORT=3002 npm run dev:backend\" \"npm run dev:frontend\" \"wait-on http://localhost:5173 http://localhost:3002 && electron .\"",
+    "build": "npm run build:frontend && npm run build:backend",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && npm run build",
     "start": "node backend/dist/index.js",
-    "start:auto-restart": "cd backend && ./run-backend.sh"
+    "start:auto-restart": "cd backend && ./run-backend.sh",
+    "rebuild:native": "cd backend && npm_config_runtime=electron npm_config_target=$(node -p \"require('../node_modules/electron/package.json').version\") npm_config_disturl=https://electronjs.org/headers npm_config_build_from_source=true npm rebuild better-sqlite3 --update-binary",
+    "package": "npm run build && npm run rebuild:native && electron-builder",
+    "package:linux": "npm run build && npm run rebuild:native && electron-builder --linux"
+  },
+  "build": {
+    "icon": "electron/icons/minty-icon.png",
+    "appId": "com.minty.dashboard",
+    "productName": "Minty Dashboard",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/dist/**/*",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/dist",
+        "to": "backend/dist"
+      },
+      {
+        "from": "frontend/dist",
+        "to": "backend/dist/frontend/dist"
+      },
+      {
+        "from": "backend/node_modules",
+        "to": "backend/node_modules"
+      },
+      {
+        "from": "backend/package.json",
+        "to": "backend/package.json"
+      }
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "electron/icons",
+      "executableName": "minty-dashboard",
+      "maintainer": "u5038115688@gmail.com"
+    }
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0",
+    "wait-on": "^7.0.0"
   }
 }
