@@ -1,161 +1,85 @@
-# Ultrawide Dashboard
+# Minty Dashboard
 
-Persönliches Dashboard für Super-Ultrawide-Monitore (5120x1440) mit Live-Widgets und **Minty**, dem lebendigen System-Maskottchen! 🌿
+A personal dashboard for ultrawide displays (tested at 5120x1440) with live widgets and the Minty system companion.
 
-## Features
+## Highlights
+- Minty companion with breathing/blinking animations, time-of-day mood, and multi-language quips.
+- Live system metrics (CPU, RAM, disk, network) with sparklines.
+- News wall (4 feeds), weather, tasks/calendar, Pomodoro timer.
+- Ambient sounds (rain, forest, fireplace, ocean, etc.).
+- Optional stock ticker (backend + frontend flags).
+- Transparency mode with separate background and widget alpha controls, plus blur.
 
-- **Minty - System Pet:** Interaktives Minzblatt-Maskottchen mit Persönlichkeit
-  - Blinzelt, atmet und reagiert auf System-Status
-  - Tageszeit-abhängige Stimmung (müde nachts, wach tagsüber)
-  - Mehrsprachige Smalltalk-Sprüche (DE/EN Mix)
-  - Easter Eggs (13:37 = "LEET.", Freitag-Sprüche, etc.)
-  - Ambient-Reaktionen (Kamin-Glow, Regentropfen)
-  - Responsive Skalierung (3 Größenstufen)
-  - Klick für neuen Spruch
-- **Stock Ticker:** Live-Preise von Yahoo Finance, korrekter Regular-Market-Preis, Cache-Guardrails, Last-Updated-Anzeige
-- **News Reader:** 4 Spalten (Heise, Golem, HN, Yahoo Finance)
-- **System-Metriken:** CPU, RAM, Disk, Netzwerk mit Sparklines
-- **Pomodoro Timer:** 25/5 Minuten mit Session-Tracking
-- **Ambient Sounds:** Regen, Wald, Kamin, Ozean, etc.
-- **Timeline:** Tagesverlauf mit "Jetzt"-Marker
-- **Uhr:** Digitale Uhr mit deutschem Datumsformat
-- **Wetter:** Lokale Wettervorhersage
-- **Tasks & Kalender:** Todo-Liste und Terminübersicht
+## Requirements
+- Node.js 18+
+- npm
 
-## Setup
-
-Voraussetzungen: Node.js 18+.
-
+## Installation
 ```bash
 npm install
 cd backend && npm install
 cd ../frontend && npm install
 ```
 
-### Dev-Start
-
+## Development
 ```bash
-# Terminal 1: Backend
+# Terminal 1: backend
 cd backend && npm run dev
 
-# Terminal 2: Frontend
+# Terminal 2: frontend
 cd frontend && npm run dev
+
+# Electron shell (backend on 3002 to avoid conflicts)
+npm run dev:electron
 ```
+Frontend dev server: http://localhost:5173  
+Backend dev server: http://localhost:3001 (or 3002 for dev:electron)
 
-Dann: **http://localhost:3000**
-
-### Build/Run
-
+## Production build
 ```bash
-npm run build
-npm run start
+npm run build          # builds frontend + backend
+npm run start          # runs backend/dist/index.js
 ```
 
-### Packaging (Electron)
+## Packaging (Electron)
+- `npm run package` or `npm run package:linux` builds frontend/backend and rebuilds `better-sqlite3` against the installed Electron version.
+- Packaged backend runs via Electron’s embedded Node (`ELECTRON_RUN_AS_NODE=1`), so no system Node.js is needed at runtime.
+- If you see a `NODE_MODULE_VERSION` mismatch after switching Node versions, run `npm run rebuild:native` then re-run the package script.
 
-- `npm run package` bzw. `npm run package:linux` baut automatisch Frontend + Backend und kompiliert `better-sqlite3` gegen die aktuelle Electron-Version (Target wird aus `node_modules/electron` gelesen).
-- Der Backend-Prozess läuft im Paket jetzt über die eingebaute Electron-Node (`ELECTRON_RUN_AS_NODE=1`), d.h. keine System-Node-Version ist zur Laufzeit nötig.
-- Falls du nach einem `npm install` mit einer anderen Node-Version packst und wieder ein `NODE_MODULE_VERSION`-Fehler auftaucht: `npm run rebuild:native` ausführen und danach erneut `npm run package`.
-
-### Tests
-
+## Tests
 ```bash
 cd backend && npm run test
 ```
 
-## Konfiguration
+## Configuration
+- Stocks watchlist: `backend/src/stocks/stockService.ts` (when enabled)
+- News feeds: `backend/src/services/newsService.ts`
 
-- Watchlist: `backend/src/stocks/stockService.ts`
-- RSS Feeds: `backend/src/services/newsService.ts`
-
-## Environment Variablen
-
-- `PORT`: Backend-Port (default `3001`)
-- `STOCKS_ENABLED`: Stocks Feature-Flag (`true`/`1`), default `false`
-- `VITE_STOCKS_ENABLED`: Frontend Feature-Flag (`true`/`1`), default `false`
-- `STOCKS_DEBUG`: Debug-Logging fuer Stock-Fetching (`1` oder `true`)
-- `STOCKS_ALLOW_FALLBACK`: Optionales Fallback fuer Stock-Preise (`1` oder `true`)
+## Environment variables
+- `PORT`: backend port (default `3001`)
+- `STOCKS_ENABLED`: enable stocks in backend (`true`/`1`), default `false`
+- `VITE_STOCKS_ENABLED`: enable stocks in frontend (`true`/`1`), default `false`
+- `STOCKS_DEBUG`: verbose stock fetching logs (`1` or `true`)
+- `STOCKS_ALLOW_FALLBACK`: allow fallback stock data (`1` or `true`)
 
 ## Troubleshooting
+- Yahoo Finance rate limits: increase the update interval (120s+ recommended).
+- Wrong ticker: include the exchange suffix (e.g., `SAP.DE`).
+- No data: check network; enable `STOCKS_DEBUG=1` for backend logs.
 
-- **Rate Limits bei Yahoo Finance:** Update-Intervall in den Settings erhoehen (Empfehlung: 120s+).
-- **Falscher Ticker:** Symbol mit Exchange-Suffix verwenden (z.B. `SAP.DE`).
-- **Keine Daten:** Netzwerkverbindung pruefen; Backend-Logs mit `STOCKS_DEBUG=1` aktivieren.
+## Tech stack
+- Frontend: Vite, React, TypeScript, Tailwind, Zustand
+- Backend: Node.js, Express, Socket.io
+- Data/APIs: yahoo-finance2, rss-parser, systeminformation
 
-## Tech Stack
-
-- **Frontend:** Vite + React + TypeScript + Tailwind + Zustand
-- **Backend:** Node.js + Express + Socket.io
-- **APIs:** yahoo-finance2, rss-parser, systeminformation
-
-## Minty - Das System Pet 🌿
-
-Minty ist ein freundliches Minzblatt mit Circuit-Board-Pattern, das auf dein System reagiert:
-
-### Animationen
-- **Atmen:** Sanfte Breathing-Animation (scale 1.0 → 1.05)
-- **Blinzeln:** Alle 3-7 Sekunden, manchmal doppelt
-- **Tageszeit-Stimmung:** Augen passen sich der Uhrzeit an
-  - 🌅 Morgens (5-9h): Müde, halb geschlossene Augen
-  - ☀️ Vormittags (9-12h): Wach und fröhlich
-  - 🌆 Abends (17-20h): Entspannt
-  - 🌙 Nachts (23-5h): Sehr müde
-
-### Interaktionen
-- **Klick auf Minty:** Zeigt neuen zufälligen Spruch
-- **Sprechblasen:** Wechseln automatisch jede Minute
-- **System-Reaktionen:**
-  - High CPU (>80%): Angestrengter Gesichtsausdruck
-  - High RAM (>85%): Besorgter Ausdruck
-  - High Temp (>70°): Schwitzend mit Hitzewellen
-
-### Smalltalk-Kategorien (DE/EN Mix)
-- **Linux-Stolz:** "I use Mint, BTW.", "Free as in freedom. And beer."
-- **Arch-Roasts:** "BTW, I actually work.", "I don't use Arch. I have a life."
-- **Windows/Mac:** "Windows Update? Don't know her.", "Ctrl+Alt+Del? I prefer Ctrl+C."
-- **Tageszeit:** "Coffee... need coffee...", "Night shift gang.", "3 AM thoughts hit different."
-- **Easter Eggs:** 13:37 → "LEET.", Freitag → "Zeit für... genau das gleiche wie immer."
-
-### Ambient-Reaktionen
-- **🔥 Kamin aktiv:** Warmer orange Glow-Effekt
-- **🌧️ Regen aktiv:** Regentropfen-Animation + blaue Tönung
-
-### Responsive Skalierung
-- **Small (80px):** Widget < 250px Breite
-- **Medium (120px):** Widget 250-400px
-- **Large (176px):** Widget > 400px
-
-## Layout
-
-```
-┌──────────────────────────────────────────────────────────┐
-│                    Stock Ticker Bar                       │
-├────────┬──────────┬──────────────────────┬───────────────┤
-│  Uhr   │  Minty   │        News          │   Kalender    │
-│        │ (Pet)    │    (4 Spalten)       │    Tasks      │
-│        │  System  │                      │               │
-├────────┴──────────┴──────────────────────┴───────────────┤
-│                     Timeline Bar                          │
-└──────────────────────────────────────────────────────────┘
-```
-
-## Verzeichnisstruktur
-
+## Project layout
 ```
 ultrawide-dashboard/
-├── frontend/          # React Frontend
-├── backend/           # Express Backend
-└── shared/            # Gemeinsame TypeScript Types
+├── frontend/    # React frontend
+├── backend/     # Express backend
+└── shared/      # Shared TypeScript types
 ```
 
 ## Credits
-
-- **Minty Character Design:** Custom SVG, inspired by Linux Mint mascot
-- **Concept Art:** Generated for initial design reference
-- **Voice:** Multilingual smartass with a heart of green 🌿
-
-## Backlog
-
-- Layout-Presets fuer verschiedene Bildschirmaufloesungen
-- Flatpak/Flathub Packaging
-- Minty Settings Toggle (Smalltalk ein/aus, Animationen ein/aus)
+- Minty character design: custom SVG inspired by Linux Mint.
+- Concept art: generated for initial design reference.
