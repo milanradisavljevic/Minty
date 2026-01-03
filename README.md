@@ -6,7 +6,6 @@ Minty Dashboard is a desktop dashboard for ultrawide displays (tested at 5120×1
 - Layout profiles (compact / standard / ultrawide) with scaling and per-profile layouts.
 - Clamped row heights so widgets do not balloon when only a few are enabled.
 - Real transparency controls (background + widget alpha) with a global toggle.
-- Memento Mori footer placement refinements and centered layout.
 - Icon unified to `minty-icon.png` for packaged builds (.AppImage and .deb).
 
 ## Features
