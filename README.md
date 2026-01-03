@@ -13,7 +13,6 @@ Minty Dashboard is a desktop dashboard for ultrawide displays (tested at 5120×1
 - System metrics (CPU, RAM, disk, network) with sparklines.
 - News wall (multiple feeds), weather, tasks/calendar, Pomodoro timer.
 - Ambient sounds (rain, forest, fireplace, ocean, wind, etc.).
-- Optional stock ticker (backend + frontend flags).
 - Transparency mode with separate background and widget opacity plus blur.
 
 ## Requirements
