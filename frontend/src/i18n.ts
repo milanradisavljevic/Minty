@@ -577,7 +577,7 @@ const translations: Record<Language, Partial<TranslationDict>> = {
     connection_connected: 'Conectado',
     connection_disconnected: 'Desconectado',
     loading_config: 'Cargando configuración...',
-    timeline_of_day: 'del dia',
+    timeline_of_day: 'del día',
     timeline_remaining: 'restante',
     system_core: 'Núcleo',
     system_download: 'Descarga',

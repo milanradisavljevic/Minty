@@ -4,24 +4,23 @@ import type { WeatherData } from '../../types';
 import { getLocale, useTranslation } from '../../i18n';
 import { useSettingsStore } from '../../stores/settingsStore';
 
-const WEATHER_ICON: Record<number, string> = {
-  0: '☀️',
-  1: '🌤️',
-  2: '⛅',
-  3: '☁️',
-  45: '🌫️',
-  48: '🌫️',
-  51: '🌦️',
-  61: '🌧️',
-  63: '🌧️',
-  65: '🌧️',
-  71: '🌨️',
-  80: '🌧️',
-  95: '⛈️',
-};
-
 function getWeatherIcon(code: number) {
-  return WEATHER_ICON[code] || '🌡️';
+  // WMO codes https://open-meteo.com/en/docs
+  if (code === 0) return '☀️'; // Clear sky
+  if (code === 1) return '🌤️'; // Mainly clear
+  if (code === 2) return '⛅'; // Partly cloudy
+  if (code === 3) return '☁️'; // Overcast
+  if (code === 45 || code === 48) return '🌫️'; // Fog
+  if ([51, 53, 55].includes(code)) return '🌦️'; // Drizzle
+  if ([56, 57].includes(code)) return '🌧️'; // Freezing drizzle
+  if ([61, 63, 65].includes(code)) return '🌧️'; // Rain
+  if ([66, 67].includes(code)) return '🌧️'; // Freezing rain
+  if ([71, 73, 75, 77].includes(code)) return '❄️'; // Snow or grains
+  if ([80, 81, 82].includes(code)) return '🌧️'; // Rain showers
+  if ([85, 86].includes(code)) return '❄️'; // Snow showers
+  if (code === 95) return '⛈️'; // Thunderstorm
+  if (code === 96 || code === 99) return '⛈️'; // Thunderstorm with hail
+  return '🌡️';
 }
 
 export function WeatherWidget() {
@@ -29,6 +28,7 @@ export function WeatherWidget() {
   const locale = getLocale(language);
   const weatherSettings = useSettingsStore((s) => s.weather);
   const unitLabel = weatherSettings?.units === 'imperial' ? '°F' : '°C';
+  const windUnitLabel = weatherSettings?.units === 'imperial' ? 'mph' : 'km/h';
   const locationName = weatherSettings?.locationName?.trim();
   const latitude = weatherSettings?.latitude ?? 48.2082;
   const longitude = weatherSettings?.longitude ?? 16.3738;
@@ -131,7 +131,7 @@ export function WeatherWidget() {
               {weather.humidity}%
             </div>
             <div className="text-xs text-[var(--color-text-secondary)]">
-              {t('weather_wind')} {Math.round(weather.windSpeed)} km/h
+              {t('weather_wind')} {Math.round(weather.windSpeed)} {windUnitLabel}
             </div>
             <div className="text-xs text-[var(--color-text-secondary)] mt-1">{locationLabel}</div>
           </div>

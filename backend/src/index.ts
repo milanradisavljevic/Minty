@@ -361,9 +361,14 @@ app.delete('/api/upcoming/:id', (req, res) => {
 });
 
 // Weather endpoint
-app.get('/api/weather', async (_req, res) => {
+app.get('/api/weather', async (req, res) => {
   try {
-    const weather = await getWeather();
+    const lat = typeof req.query.lat === 'string' ? Number(req.query.lat) : undefined;
+    const lon = typeof req.query.lon === 'string' ? Number(req.query.lon) : undefined;
+    const unitsParam = typeof req.query.units === 'string' ? req.query.units : undefined;
+    const units = unitsParam === 'imperial' ? 'imperial' : unitsParam === 'metric' ? 'metric' : undefined;
+
+    const weather = await getWeather({ latitude: lat, longitude: lon, units });
     res.json({ weather, timestamp: Date.now() });
   } catch (error) {
     console.error('Error fetching weather:', error);
