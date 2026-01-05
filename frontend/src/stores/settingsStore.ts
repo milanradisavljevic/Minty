@@ -66,6 +66,8 @@ interface SettingsState {
     | 'widgets'
     | 'news'
     | 'general'
+    | 'stocks'
+    | 'layouts'
     | 'pomodoro'
     | 'clock'
     | 'appearance'
@@ -270,12 +272,13 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'dashboard-settings',
       version: 8, // v8: clock size + memento mori toggle
-      migrate: (state: any, version: number) => {
+      migrate: (state: unknown, version: number) => {
         console.log(`[Settings] Migrating from version ${version} to 8`);
 
         try {
           // Start with a safe baseline
-          const next: Partial<SettingsState> = { ...(state || {}) };
+          const source = (state as Partial<SettingsState>) || {};
+          const next: Partial<SettingsState> = { ...source };
 
           // Widgets: ensure array exists and filter removed widgets
           next.widgets = next.widgets && Array.isArray(next.widgets) && next.widgets.length > 0

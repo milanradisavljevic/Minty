@@ -36,6 +36,23 @@ import {
 import { getWeather } from './services/weatherService.js';
 import { getConfig, loadConfig, saveDashboardConfig, saveNewsFeeds } from './services/configService.js';
 import type { DashboardConfig, NewsFeedConfig } from '../../shared/types/index.js';
+import {
+  fetchQuotesForSymbols,
+  getCachedQuotes,
+  getQuotesSettings,
+  refreshQuotes,
+  startQuotesScheduler,
+  updateQuoteSettings,
+} from './services/quotesService.js';
+import {
+  createLayoutPreset,
+  deleteLayoutPreset,
+  getLayoutPreset,
+  listLayoutPresets,
+  setDefaultLayoutPreset,
+  updateLayoutPreset,
+} from './services/layoutPresetsService.js';
+import { getThemeSettings, saveThemeSettings } from './services/userSettingsService.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -51,6 +68,9 @@ const io = new Server(httpServer, {
   },
   transports: ['websocket'],
 });
+
+// Start quotes scheduler for ticker updates
+startQuotesScheduler(io);
 
 // Middleware
 app.use(cors());
@@ -96,6 +116,130 @@ app.put('/api/config/dashboard', (req, res) => {
   }
   saveDashboardConfig(dashboard);
   res.json({ status: 'ok' });
+});
+
+// Quotes endpoints
+app.get('/api/quotes', async (req, res) => {
+  const symbolsParam = req.query.symbols as string | undefined;
+  const symbols = symbolsParam ? symbolsParam.split(',') : undefined;
+
+  try {
+    if (symbols && symbols.length > 0 && symbols[0]) {
+      const quotes = await fetchQuotesForSymbols(symbols);
+      res.json({ quotes, timestamp: Date.now() });
+      return;
+    }
+
+    let quotes = getCachedQuotes();
+    if (!quotes.length) {
+      quotes = await refreshQuotes(io);
+    }
+    res.json({ quotes, timestamp: Date.now() });
+  } catch (error) {
+    console.error('Failed to fetch quotes', error);
+    res.status(500).json({ error: 'Failed to fetch quotes' });
+  }
+});
+
+app.get('/api/quotes/default', async (_req, res) => {
+  try {
+    const quotes = await refreshQuotes(io);
+    res.json({ quotes, timestamp: Date.now() });
+  } catch (error) {
+    console.error('Failed to fetch default quotes', error);
+    res.status(500).json({ error: 'Failed to fetch default quotes' });
+  }
+});
+
+app.get('/api/quotes/settings', (_req, res) => {
+  res.json({ settings: getQuotesSettings(), timestamp: Date.now() });
+});
+
+app.put('/api/quotes/settings', async (req, res) => {
+  const { symbols, refreshIntervalMinutes, apiKey } = req.body as { symbols?: string[]; refreshIntervalMinutes?: number; apiKey?: string };
+  try {
+    await updateQuoteSettings({ symbols, refreshIntervalMinutes, apiKey }, io);
+    res.json({ settings: getQuotesSettings(), status: 'ok' });
+  } catch (error) {
+    console.error('Failed to update quote settings', error);
+    res.status(400).json({ error: 'Failed to update quote settings' });
+  }
+});
+
+// Layout preset endpoints
+app.get('/api/layouts', (req, res) => {
+  const screenKey = typeof req.query.screenKey === 'string' ? req.query.screenKey : undefined;
+  const presets = listLayoutPresets(screenKey);
+  res.json({ presets, timestamp: Date.now() });
+});
+
+app.post('/api/layouts', (req, res) => {
+  const { name, screenKey, layoutJson, isDefault } = req.body as {
+    name?: string;
+    screenKey?: string;
+    layoutJson?: string;
+    isDefault?: boolean;
+  };
+
+  if (!name || !screenKey || !layoutJson) {
+    res.status(400).json({ error: 'name, screenKey and layoutJson are required' });
+    return;
+  }
+
+  try {
+    const preset = createLayoutPreset({ name, screenKey, layoutJson, isDefault });
+    res.status(201).json({ preset });
+  } catch (error) {
+    console.error('Failed to create layout preset', error);
+    res.status(500).json({ error: 'Failed to create layout preset' });
+  }
+});
+
+app.put('/api/layouts/:id', (req, res) => {
+  const id = req.params.id;
+  const updates = req.body as { name?: string; layoutJson?: string; isDefault?: boolean };
+  const preset = updateLayoutPreset(id, updates);
+  if (!preset) {
+    res.status(404).json({ error: 'Preset not found' });
+    return;
+  }
+  res.json({ preset });
+});
+
+app.post('/api/layouts/:id/set-default', (req, res) => {
+  const id = req.params.id;
+  const preset = setDefaultLayoutPreset(id);
+  if (!preset) {
+    res.status(404).json({ error: 'Preset not found' });
+    return;
+  }
+  res.json({ preset });
+});
+
+app.delete('/api/layouts/:id', (req, res) => {
+  const id = req.params.id;
+  const existing = getLayoutPreset(id);
+  if (!existing) {
+    res.status(404).json({ error: 'Preset not found' });
+    return;
+  }
+  const deleted = deleteLayoutPreset(id);
+  res.json({ status: deleted ? 'ok' : 'noop' });
+});
+
+// Theme settings endpoints
+app.get('/api/settings/theme', (_req, res) => {
+  res.json({ settings: getThemeSettings(), timestamp: Date.now() });
+});
+
+app.put('/api/settings/theme', (req, res) => {
+  try {
+    const settings = saveThemeSettings(req.body || {});
+    res.json({ settings, status: 'ok' });
+  } catch (error) {
+    console.error('Failed to update theme settings', error);
+    res.status(400).json({ error: 'Failed to update theme settings' });
+  }
 });
 
 // Tasks endpoints
@@ -217,9 +361,14 @@ app.delete('/api/upcoming/:id', (req, res) => {
 });
 
 // Weather endpoint
-app.get('/api/weather', async (_req, res) => {
+app.get('/api/weather', async (req, res) => {
   try {
-    const weather = await getWeather();
+    const lat = typeof req.query.lat === 'string' ? Number(req.query.lat) : undefined;
+    const lon = typeof req.query.lon === 'string' ? Number(req.query.lon) : undefined;
+    const unitsParam = typeof req.query.units === 'string' ? req.query.units : undefined;
+    const units = unitsParam === 'imperial' ? 'imperial' : unitsParam === 'metric' ? 'metric' : undefined;
+
+    const weather = await getWeather({ latitude: lat, longitude: lon, units });
     res.json({ weather, timestamp: Date.now() });
   } catch (error) {
     console.error('Error fetching weather:', error);
@@ -444,6 +593,12 @@ io.on('connection', (socket) => {
     socket.leave('mpris');
     mprisClients.delete(socket.id);
     stopMprisBroadcast();
+  });
+
+  // Quotes: send current cache immediately
+  socket.emit('quotes:update', getCachedQuotes());
+  socket.on('quotes:subscribe', () => {
+    socket.emit('quotes:update', getCachedQuotes());
   });
 
   socket.on('disconnect', () => {

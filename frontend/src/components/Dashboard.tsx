@@ -10,6 +10,7 @@ import { TimelineBar } from './TimelineBar';
 import { SettingsModal } from './SettingsModal';
 import { WidgetContextMenu } from './WidgetContextMenu';
 import { useTranslation } from '../i18n';
+import { TopTickerBar } from './TopTickerBar';
 import { WIDGET_TITLE_KEYS } from '../constants/widgets';
 import { useLayoutStore, layoutCols, layoutBreakpoints, type LayoutProfile, defaultLayouts, profileScale, layoutTargetRows } from '../stores/layoutStore';
 import {
@@ -26,7 +27,7 @@ import {
   MusicPlayerWidget,
   PomodoroWidget,
 } from './widgets';
-import type { WidgetLayout } from '../types';
+import type { WidgetLayout, WidgetType } from '../types';
 
 // Widget component map
 const widgetComponents: Record<string, React.ComponentType> = {
@@ -181,7 +182,7 @@ export function Dashboard() {
   const baseMargin = currentProfile === 'compact' ? 10 : currentProfile === 'standard' ? 14 : 16;
   const marginValue = Math.max(8, Math.round(baseMargin * profileScaleValue));
   const margin: [number, number] = [marginValue, marginValue];
-  const GridLayoutComponent = GridLayout as unknown as ComponentType<any>;
+  const GridLayoutComponent = GridLayout as unknown as ComponentType<RGL.ReactGridLayoutProps>;
 
   // Ensure widgets from settings are present in dashboard store/layout
   useEffect(() => {
@@ -216,7 +217,7 @@ export function Dashboard() {
         const titleKey = WIDGET_TITLE_KEYS[setting.id] || setting.id;
         syncedWidgets.push({
           id: setting.id,
-          type: setting.id as any,
+          type: setting.id as WidgetType,
           title: titleKey,
           titleKey,
           enabled: setting.enabled,
@@ -323,36 +324,42 @@ export function Dashboard() {
       {/* Tip of the Day - Top */}
       <TipOfTheDay />
 
+      {/* Top ticker bar */}
+      <TopTickerBar />
+
       {/* Settings Modal */}
       <SettingsModal />
 
       {/* Main Grid Area with top-left controls */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="sticky top-0 left-0 z-40 px-4 py-3 flex flex-wrap items-center gap-3 bg-[var(--color-dashboard-bg)]/85 backdrop-blur-md border-b border-[var(--color-widget-border)]">
-          <button
-            onClick={openSettings}
-            className="flex items-center justify-center w-9 h-9 rounded-full bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] transition-colors"
-            title={t('settings_button_tooltip')}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
-          <div
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-              isConnected
-                ? 'bg-[var(--color-success)]/20 text-[var(--color-success)]'
-                : 'bg-[var(--color-error)]/20 text-[var(--color-error)]'
-            }`}
-          >
+          <div className="flex items-center gap-3">
+            <button
+              onClick={openSettings}
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] transition-colors"
+              title={t('settings_button_tooltip')}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
             <div
-              className={`w-2 h-2 rounded-full ${
-                isConnected ? 'bg-[var(--color-success)]' : 'bg-[var(--color-error)]'
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                isConnected
+                  ? 'bg-[var(--color-success)]/20 text-[var(--color-success)]'
+                  : 'bg-[var(--color-error)]/20 text-[var(--color-error)]'
               }`}
-            />
-            {isConnected ? t('connection_connected') : t('connection_disconnected')}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  isConnected ? 'bg-[var(--color-success)]' : 'bg-[var(--color-error)]'
+                }`}
+              />
+              {isConnected ? t('connection_connected') : t('connection_disconnected')}
+            </div>
           </div>
+
         </div>
 
         <div className="flex-1 p-4 overflow-auto">

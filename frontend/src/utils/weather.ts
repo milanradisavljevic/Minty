@@ -1,10 +1,26 @@
 import type { WeatherData, DailyForecast } from '../types';
 
-function mapDaily(data: any): DailyForecast[] {
-  const dates: string[] = data?.daily?.time || [];
-  const max: number[] = data?.daily?.temperature_2m_max || [];
-  const min: number[] = data?.daily?.temperature_2m_min || [];
-  const precip: number[] = data?.daily?.precipitation_probability_max || [];
+interface WeatherApiResponse {
+  current?: {
+    temperature_2m: number;
+    apparent_temperature: number;
+    relative_humidity_2m: number;
+    wind_speed_10m: number;
+    weather_code: number;
+  };
+  daily?: {
+    time: string[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_probability_max: number[];
+  };
+}
+
+function mapDaily(data: WeatherApiResponse): DailyForecast[] {
+  const dates: string[] = data.daily?.time || [];
+  const max: number[] = data.daily?.temperature_2m_max || [];
+  const min: number[] = data.daily?.temperature_2m_min || [];
+  const precip: number[] = data.daily?.precipitation_probability_max || [];
 
   return dates.map((date, index) => ({
     date,
@@ -40,7 +56,7 @@ export async function fetchWeatherData({
     throw new Error(`HTTP ${response.status}`);
   }
 
-  const payload: any = await response.json();
+  const payload: WeatherApiResponse = await response.json();
   const current = payload?.current;
 
   if (!current) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Task, Note } from '../../types';
 import { WidgetWrapper } from './WidgetWrapper';
 import { useTranslation } from '../../i18n';
@@ -12,7 +12,7 @@ export function TasksWidget() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     try {
       const [tasksRes, notesRes] = await Promise.all([fetch('/api/tasks'), fetch('/api/notes')]);
       if (!tasksRes.ok || !notesRes.ok) throw new Error('Load failed');
@@ -27,11 +27,11 @@ export function TasksWidget() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [t]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const addTask = async () => {
     if (!taskInput.trim()) return;

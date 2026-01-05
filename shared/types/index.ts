@@ -159,6 +159,53 @@ export interface AppConfig {
   calendar: CalendarConfig;
 }
 
+// Quotes
+export type QuoteSource = 'yahoo' | 'coingecko';
+export type QuoteSourceExtended = QuoteSource | 'alphavantage';
+
+export interface Quote {
+  symbol: string;
+  displayName?: string;
+  price: number;
+  currency: string;
+  changeAbs?: number;
+  changePct?: number;
+  marketTime: number;
+  marketState?: string;
+  source: QuoteSourceExtended;
+  lastUpdated: number;
+  isStale: boolean;
+}
+
+// Layout presets
+export interface LayoutPreset {
+  id: string;
+  name: string;
+  screenKey: string;
+  layoutJson: string;
+  isDefault: boolean;
+  updatedAt: number;
+}
+
+// Theme + appearance presets
+export type ThemePreset = 'cyberpunk' | 'retro80s' | 'scandi' | 'classic' | 'dark';
+export type ThemeDensity = 'compact' | 'normal' | 'comfortable';
+export type ThemeFontFamily = 'system' | 'monospace';
+export type ThemeFontSize = 'small' | 'normal' | 'large';
+
+export interface ThemeSettings {
+  preset: ThemePreset;
+  fontFamily: ThemeFontFamily;
+  fontSizeBase: ThemeFontSize;
+  density: ThemeDensity;
+}
+
+export interface TopbarSettings {
+  symbols: string[];
+  refreshIntervalMinutes?: number;
+  apiKey?: string;
+}
+
 // News types
 export interface NewsItem {
   title: string;
@@ -225,9 +272,12 @@ export interface Decision {
 export interface ServerToClientEvents {
   'metrics:update': (data: SystemMetrics) => void;
   'connection:status': (status: 'connected' | 'disconnected') => void;
+  'quotes:update': (data: Quote[]) => void;
 }
 
 export interface ClientToServerEvents {
   'metrics:subscribe': () => void;
   'metrics:unsubscribe': () => void;
+  'quotes:subscribe': () => void;
+  'quotes:unsubscribe': () => void;
 }

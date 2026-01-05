@@ -7,7 +7,7 @@ import deTranslations from '../../i18n/locales/de.json';
 import enTranslations from '../../i18n/locales/en.json';
 import esTranslations from '../../i18n/locales/es.json';
 import srTranslations from '../../i18n/locales/sr.json';
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 
 type SystemState = 'healthy' | 'highCpu' | 'highRam' | 'highTemp';
 type TimeOfDayMood = 'morning' | 'forenoon' | 'afternoon' | 'evening' | 'night' | 'lateNight';
@@ -624,7 +624,7 @@ export function SystemPet() {
   const [showMessage, setShowMessage] = useState(true);
   const [currentMessage, setCurrentMessage] = useState<string>('');
   const [baseMessage, setBaseMessage] = useState<string>('');
-  const [alertCooldowns, setAlertCooldowns] = useState<Map<AlertType, number>>(new Map());
+  const [, setAlertCooldowns] = useState<Map<AlertType, number>>(new Map());
   const [mintySize, setMintySize] = useState<'small' | 'medium' | 'large'>('medium');
   const containerRef = useRef<HTMLDivElement>(null);
   const lastMintyLocale = useRef<Language>(mintyLocale);
@@ -655,22 +655,32 @@ export function SystemPet() {
   }, []);
 
   // Alert system with cooldown (10 minutes per alert type)
-  const triggerAlert = (type: AlertType, message: string) => {
+  const triggerAlert = useCallback((type: AlertType, message: string) => {
     const now = Date.now();
-    const lastAlertTime = alertCooldowns.get(type) || 0;
     const cooldownPeriod = 10 * 60 * 1000; // 10 minutes
+    let shouldAlert = false;
 
-    if (now - lastAlertTime > cooldownPeriod) {
-      setCurrentMessage(message);
-      setShowMessage(true);
-      setAlertCooldowns(new Map(alertCooldowns.set(type, now)));
+    setAlertCooldowns((prev) => {
+      const lastAlertTime = prev.get(type) || 0;
+      if (now - lastAlertTime <= cooldownPeriod) {
+        return prev;
+      }
+      shouldAlert = true;
+      const next = new Map(prev);
+      next.set(type, now);
+      return next;
+    });
 
-      // Reset message after a few seconds
-      setTimeout(() => {
-        setCurrentMessage('');
-      }, 8000);
-    }
-  };
+    if (!shouldAlert) return;
+
+    setCurrentMessage(message);
+    setShowMessage(true);
+
+    // Reset message after a few seconds
+    setTimeout(() => {
+      setCurrentMessage('');
+    }, 8000);
+  }, []);
 
   // Check for alert conditions
   useEffect(() => {
@@ -688,7 +698,7 @@ export function SystemPet() {
     if (metrics.temperature && metrics.temperature >= 80) {
       triggerAlert('highTemp', highTempAlert);
     }
-  }, [metrics?.memory.percent, metrics?.temperature, mintyLocale]);
+  }, [metrics, mintyLocale, triggerAlert]);
 
   // Generate initial base message when metrics become available
   useEffect(() => {

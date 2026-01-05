@@ -1,10 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSettingsStore, type Language } from '../stores/settingsStore';
 import { useTranslation } from '../i18n';
 import { WIDGET_TITLE_KEYS } from '../constants/widgets';
 import type { NewsFeedConfig } from '../types';
 import { fetchWeatherData } from '../utils/weather';
 import { useLayoutStore, layoutBreakpoints, type LayoutProfile } from '../stores/layoutStore';
+import { useQuotesStore } from '../stores/quotesStore';
+import { useDashboardStore } from '../stores/dashboardStore';
+import { deleteLayout, listSavedLayouts, loadLayout as loadSavedLayout, saveLayout as saveLocalLayout, type SavedLayout } from '../utils/layoutStorage';
 
 function WidgetsTab() {
   const { t } = useTranslation();
@@ -675,6 +678,329 @@ function CalendarTab() {
   );
 }
 
+function StocksTab() {
+  const setQuoteSettings = useQuotesStore((s) => s.setSettings);
+  const storedSymbols = useQuotesStore((s) => s.symbols);
+  const storedRefresh = useQuotesStore((s) => s.refreshIntervalMinutes);
+  const storedApiKey = useQuotesStore((s) => s.apiKey);
+  const [symbolsInput, setSymbolsInput] = useState(storedSymbols.join(', '));
+  const [refreshMinutes, setRefreshMinutes] = useState(storedRefresh || 10);
+  const [apiKey, setApiKey] = useState(storedApiKey || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const loadedRef = useRef(false);
+
+  useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const res = await fetch('/api/quotes/settings');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (cancelled) return;
+        const settings = data.settings || {};
+        const incomingSymbols: string[] | undefined = Array.isArray(settings.symbols) ? settings.symbols : undefined;
+        const incomingRefresh =
+          typeof settings.refreshIntervalMinutes === 'number' ? settings.refreshIntervalMinutes : undefined;
+
+        if (incomingSymbols && incomingSymbols.length) {
+          const joined = incomingSymbols.join(', ');
+          setSymbolsInput((prev) => (prev === joined ? prev : joined));
+        }
+        if (incomingRefresh !== undefined) {
+          setRefreshMinutes((prev) => (prev === incomingRefresh ? prev : incomingRefresh));
+        }
+        if (settings.apiKey !== undefined) {
+          setApiKey(settings.apiKey || '');
+        }
+
+        setQuoteSettings({
+          ...(incomingSymbols ? { symbols: incomingSymbols } : {}),
+          ...(incomingRefresh !== undefined ? { refreshIntervalMinutes: incomingRefresh } : {}),
+          ...(settings.apiKey !== undefined ? { apiKey: settings.apiKey } : {}),
+        });
+      } catch (err) {
+        console.error('Failed to load ticker settings', err);
+        setError('Konnte Einstellungen nicht laden');
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [setQuoteSettings]);
+
+  const handleSave = async () => {
+    const symbols = symbolsInput
+      .split(',')
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean);
+    const refreshIntervalMinutes = Math.max(5, Math.min(24 * 60, Number(refreshMinutes) || 10));
+    const apiKeyPayload = apiKey.trim();
+
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await fetch('/api/quotes/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbols, refreshIntervalMinutes, apiKey: apiKeyPayload }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text}`);
+      }
+      const data = await res.json();
+      const settings = data.settings ?? { symbols, refreshIntervalMinutes };
+      setQuoteSettings(settings);
+      if (settings.symbols?.length) {
+        setSymbolsInput(settings.symbols.join(', '));
+      }
+      if (typeof settings.refreshIntervalMinutes === 'number') {
+        setRefreshMinutes(settings.refreshIntervalMinutes);
+      }
+      if (settings.apiKey !== undefined) {
+        setApiKey(settings.apiKey || '');
+      }
+      setSuccess('Gespeichert');
+    } catch (err) {
+      console.error('Failed to save ticker settings', err);
+      setError('Speichern fehlgeschlagen');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-sm text-[var(--color-text-secondary)] mb-2">
+          Kommagetrennte Symbole für die obere Ticker-Leiste. Beispiele: AAPL, MSFT, SAP.DE, ^GSPC,
+          BTC-USD.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="text"
+            value={symbolsInput}
+            onChange={(e) => setSymbolsInput(e.target.value)}
+            className="w-full md:w-2/3 px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+            placeholder="AAPL, MSFT, BTC-USD"
+          />
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={1440}
+              value={refreshMinutes}
+              onChange={(e) => setRefreshMinutes(Number(e.target.value) || 10)}
+              className="w-24 px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+            />
+            <span className="text-xs text-[var(--color-text-secondary)]">Minuten</span>
+          </div>
+          <input
+            type="text"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            className="w-full md:w-64 px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+            placeholder="Alpha Vantage API Key (optional)"
+          />
+          <button
+            onClick={handleSave}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              saving
+                ? 'bg-[var(--color-widget-bg)] text-[var(--color-text-secondary)] border border-[var(--color-widget-border)]'
+                : 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]'
+            }`}
+            disabled={saving}
+          >
+            {saving ? 'Speichern...' : 'Speichern'}
+          </button>
+        </div>
+      </div>
+      {error && <p className="text-xs text-[var(--color-error)]">{error}</p>}
+      {success && <p className="text-xs text-[var(--color-success)]">{success}</p>}
+    </div>
+  );
+}
+
+function LayoutsTab() {
+  const { t } = useTranslation();
+  const currentLayout = useDashboardStore((s) => s.layouts);
+  const setLayouts = useDashboardStore((s) => s.setLayouts);
+  const manualProfile = useLayoutStore((s) => s.manualProfile);
+  const saveProfileLayout = useLayoutStore((s) => s.saveLayout);
+  const [savedLayouts, setSavedLayouts] = useState<SavedLayout[]>(() => listSavedLayouts());
+  const [selectedName, setSelectedName] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [importText, setImportText] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const refreshSaved = () => setSavedLayouts(listSavedLayouts());
+
+  const handleSave = () => {
+    const name = nameInput.trim() || `Layout ${savedLayouts.length + 1}`;
+    const next = saveLocalLayout(name, currentLayout);
+    setSavedLayouts(next);
+    setSelectedName(name);
+    setNameInput('');
+    setMessage(t('layouts_saved_success'));
+    setError(null);
+  };
+
+  const handleLoad = () => {
+    if (!selectedName) {
+      setError(t('layouts_select_prompt'));
+      return;
+    }
+    const layout = loadSavedLayout(selectedName);
+    if (!layout) {
+      setError(t('layouts_load_error'));
+      return;
+    }
+    setLayouts(layout);
+    saveProfileLayout(manualProfile, layout);
+    setMessage(t('layouts_loaded_success'));
+    setError(null);
+  };
+
+  const handleDelete = () => {
+    if (!selectedName) return;
+    const next = deleteLayout(selectedName);
+    setSavedLayouts(next);
+    if (!next.find((l) => l.name === selectedName)) {
+      setSelectedName('');
+    }
+    setMessage(t('layouts_deleted_success'));
+    setError(null);
+  };
+
+  const handleExport = async () => {
+    const layout = selectedName ? loadSavedLayout(selectedName) : currentLayout;
+    const json = JSON.stringify(layout, null, 2);
+    setImportText(json);
+    try {
+      await navigator.clipboard?.writeText(json);
+      setMessage(t('layouts_exported'));
+    } catch {
+      setMessage(t('layouts_export_ready'));
+    }
+  };
+
+  const handleImport = () => {
+    try {
+      const parsed = JSON.parse(importText);
+      if (!Array.isArray(parsed)) throw new Error('Invalid');
+      const name = nameInput.trim() || `Layout ${savedLayouts.length + 1}`;
+      const next = saveLocalLayout(name, parsed);
+      setSavedLayouts(next);
+      setSelectedName(name);
+      setMessage(t('layouts_imported'));
+      setError(null);
+    } catch (err) {
+      console.error('Layout import failed', err);
+      setError(t('layouts_import_error'));
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[var(--color-text-secondary)]">
+        {t('layouts_description')}
+      </p>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          value={selectedName}
+          onChange={(e) => setSelectedName(e.target.value)}
+          className="h-10 min-w-48 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] px-3"
+        >
+          <option value="">{t('layouts_current_layout')}</option>
+          {savedLayouts.map((layout) => (
+            <option key={layout.name} value={layout.name}>
+              {layout.name}
+            </option>
+          ))}
+        </select>
+        <button
+          className="px-4 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)] disabled:opacity-50"
+          onClick={handleLoad}
+          disabled={!selectedName}
+        >
+          {t('layouts_load')}
+        </button>
+        <button
+          className="px-4 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-error)] hover:border-[var(--color-error)] disabled:opacity-50"
+          onClick={handleDelete}
+          disabled={!selectedName}
+        >
+          {t('layouts_delete')}
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          type="text"
+          value={nameInput}
+          onChange={(e) => setNameInput(e.target.value)}
+          placeholder={t('layouts_name_placeholder')}
+          className="h-10 w-56 px-3 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)]"
+        />
+        <button
+          className="px-4 py-2 rounded-md bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]"
+          onClick={handleSave}
+        >
+          {t('layouts_save')}
+        </button>
+        <button
+          className="px-4 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
+          onClick={refreshSaved}
+        >
+          {t('layouts_refresh')}
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <button
+            className="px-4 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
+            onClick={handleExport}
+          >
+            {t('layouts_export')}
+          </button>
+          <button
+            className="px-4 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-[var(--color-text-primary)] hover:border-[var(--color-accent)]"
+            onClick={handleImport}
+            disabled={!importText.trim()}
+          >
+            {t('layouts_import')}
+          </button>
+        </div>
+        <textarea
+          value={importText}
+          onChange={(e) => setImportText(e.target.value)}
+          placeholder={t('layouts_import_placeholder')}
+          className="w-full min-h-[120px] px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
+        />
+      </div>
+
+      {message && <p className="text-xs text-[var(--color-success)]">{message}</p>}
+      {error && <p className="text-xs text-[var(--color-error)]">{error}</p>}
+
+      {!savedLayouts.length && (
+        <p className="text-xs text-[var(--color-text-secondary)]">{t('layouts_none')}</p>
+      )}
+    </div>
+  );
+}
+
 function GeneralTab() {
   const { t } = useTranslation();
   const general = useSettingsStore((s) => s.general ?? { theme: 'dark', language: 'de', refreshInterval: 60, mementoMoriEnabled: true });
@@ -686,6 +1012,9 @@ function GeneralTab() {
   const manualProfile = useLayoutStore((s) => s.manualProfile);
   const setLayoutMode = useLayoutStore((s) => s.setMode);
   const setManualProfile = useLayoutStore((s) => s.setManualProfile);
+  const [mementoToastVisible, setMementoToastVisible] = useState(false);
+  const [mementoToastText, setMementoToastText] = useState<string | null>(null);
+  const mementoToastTimerRef = useRef<number | null>(null);
   const [detectedProfile, setDetectedProfile] = useState<LayoutProfile>(() => {
     const width = window.innerWidth;
     if (width >= layoutBreakpoints.ultrawide) return 'ultrawide';
@@ -724,6 +1053,58 @@ function GeneralTab() {
 
   const reloadFrontend = () => {
     window.location.reload();
+  };
+
+  const dismissMementoToast = useCallback(() => {
+    if (mementoToastTimerRef.current) {
+      window.clearTimeout(mementoToastTimerRef.current);
+      mementoToastTimerRef.current = null;
+    }
+    setMementoToastText(null);
+    setMementoToastVisible(false);
+  }, []);
+
+  const showMementoToast = useCallback((message: string) => {
+    if (mementoToastTimerRef.current) {
+      window.clearTimeout(mementoToastTimerRef.current);
+    }
+    setMementoToastText(message);
+    setMementoToastVisible(true);
+    mementoToastTimerRef.current = window.setTimeout(() => {
+      setMementoToastVisible(false);
+      setMementoToastText(null);
+      mementoToastTimerRef.current = null;
+    }, 3500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (mementoToastTimerRef.current) {
+        window.clearTimeout(mementoToastTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mementoToastVisible) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        dismissMementoToast();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mementoToastVisible, dismissMementoToast]);
+
+  const handleMementoToggle = () => {
+    const wasEnabled = general.mementoMoriEnabled;
+    const nextValue = !wasEnabled;
+    setGeneralSettings({ mementoMoriEnabled: nextValue });
+    if (wasEnabled && !nextValue) {
+      showMementoToast('Du kannst mich ausschalten. Den Ablauf der Dinge nicht.');
+    } else if (!wasEnabled && nextValue) {
+      showMementoToast('Reminder aktiv.');
+    }
   };
 
   return (
@@ -765,7 +1146,7 @@ function GeneralTab() {
             </label>
             <p className="text-xs text-[var(--color-text-secondary)]">
               {layoutMode === 'auto'
-                ? t('layout_mode_auto_hint').replace('{profile}', t(`layout_profile_${detectedProfile}` as any))
+                ? t('layout_mode_auto_hint').replace('{profile}', t(`layout_profile_${detectedProfile}`))
                 : t('layout_mode_manual_hint')}
             </p>
           </div>
@@ -793,10 +1174,10 @@ function GeneralTab() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
-            {t('layout_profile_label')}
-          </label>
+      <div>
+        <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
+          {t('layout_profile_label')}
+        </label>
           <div className="grid grid-cols-3 gap-2">
             {(['compact', 'standard', 'ultrawide'] as LayoutProfile[]).map((profile) => (
               <button
@@ -809,7 +1190,7 @@ function GeneralTab() {
                     : 'bg-[var(--color-widget-bg)] text-[var(--color-text-primary)] border border-[var(--color-widget-border)]'
                 } ${layoutMode === 'auto' ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
-                {t(`layout_profile_${profile}` as any)}
+                {t(`layout_profile_${profile}`)}
                 {layoutMode === 'auto' && detectedProfile === profile ? ' •' : ''}
               </button>
             ))}
@@ -818,25 +1199,43 @@ function GeneralTab() {
       </div>
 
       {/* Memento Mori toggle */}
-      <div className="flex items-center justify-between">
-        <div>
-          <label className="block text-sm font-medium text-[var(--color-text-primary)]">
-            {t('memento_mori_toggle')}
-          </label>
-          <p className="text-xs text-[var(--color-text-secondary)]">{t('memento_mori_hint')}</p>
-        </div>
-        <div
-          className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
-            general.mementoMoriEnabled ? 'bg-[var(--color-accent)]' : 'bg-gray-600'
-          }`}
-          onClick={() => setGeneralSettings({ mementoMoriEnabled: !general.mementoMoriEnabled })}
-        >
+      <div className="relative">
+        <div className="flex items-center justify-between">
+          <div>
+            <label className="block text-sm font-medium text-[var(--color-text-primary)]">
+              {t('memento_mori_toggle')}
+            </label>
+            <p className="text-xs text-[var(--color-text-secondary)]">{t('memento_mori_hint')}</p>
+          </div>
           <div
-            className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-              general.mementoMoriEnabled ? 'translate-x-6' : 'translate-x-1'
+            className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+              general.mementoMoriEnabled ? 'bg-[var(--color-accent)]' : 'bg-gray-600'
             }`}
-          />
+            onClick={handleMementoToggle}
+          >
+            <div
+              className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                general.mementoMoriEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </div>
         </div>
+
+        {mementoToastVisible && mementoToastText && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="absolute right-0 top-full mt-2 w-72 z-10 rounded-lg border border-[var(--color-widget-border)]/80 bg-[var(--color-widget-bg)]/90 text-[var(--color-text-primary)] shadow-lg backdrop-blur-sm"
+            onClick={dismissMementoToast}
+          >
+            <div className="px-4 py-3 space-y-1">
+              <p className="text-sm font-semibold">Memento mori</p>
+              <p className="text-xs leading-relaxed text-[var(--color-text-secondary)]">
+                {mementoToastText}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Transparency Settings */}
@@ -1203,7 +1602,7 @@ function ClockTab() {
             </label>
             <select
               value={clock.dateFormat}
-              onChange={(e) => setClockSettings({ dateFormat: e.target.value as any })}
+              onChange={(e) => setClockSettings({ dateFormat: e.target.value as typeof clock.dateFormat })}
               className="w-full px-3 py-2 rounded-md bg-[var(--color-widget-bg)] border border-[var(--color-widget-border)] text-sm text-[var(--color-text-primary)]"
             >
               <option value="system">System</option>
@@ -1330,6 +1729,8 @@ export function SettingsModal() {
     { id: 'calendar' as const, labelKey: 'tab_calendar' as const, icon: '📅' },
     { id: 'clock' as const, labelKey: 'tab_clock' as const, icon: '🕐' },
     { id: 'language' as const, labelKey: 'tab_language' as const, icon: '🌐' },
+    { id: 'stocks' as const, labelKey: 'tab_stocks' as const, icon: '📈' },
+    { id: 'layouts' as const, labelKey: 'tab_layouts' as const, icon: '🗂️' },
     { id: 'news' as const, labelKey: 'tab_news' as const, icon: '📰' },
     { id: 'pomodoro' as const, labelKey: 'tab_pomodoro' as const, icon: '🍅' },
     { id: 'general' as const, labelKey: 'tab_general' as const, icon: '⚙️' },
@@ -1344,7 +1745,7 @@ export function SettingsModal() {
       />
 
       {/* Modal - Increased width for ultrawide displays */}
-      <div className="relative w-full max-w-5xl mx-4 bg-[var(--color-card-bg)] rounded-xl shadow-2xl border border-[var(--color-widget-border)] overflow-hidden">
+      <div className="relative w-full max-w-6xl mx-4 bg-[var(--color-card-bg)] rounded-xl shadow-2xl border border-[var(--color-widget-border)] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-widget-border)]">
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
@@ -1386,6 +1787,8 @@ export function SettingsModal() {
           {activeTab === 'calendar' && <CalendarTab />}
           {activeTab === 'clock' && <ClockTab />}
           {activeTab === 'language' && <LanguageTab />}
+          {activeTab === 'stocks' && <StocksTab />}
+          {activeTab === 'layouts' && <LayoutsTab />}
           {activeTab === 'news' && <NewsTab />}
           {activeTab === 'general' && <GeneralTab />}
           {activeTab === 'pomodoro' && <PomodoroTab />}
