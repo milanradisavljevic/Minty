@@ -218,7 +218,7 @@ export function TimelineBar() {
 
         {mementoEnabled && (
           <span className="memento-mori text-[10px] absolute left-1/2 -translate-x-1/2 bottom-0.5">
-            <span role="img" aria-hidden="true">💀</span>
+            <img src="/skullformementomori.png" alt="" aria-hidden="true" className="skull-icon" />
             <span>{t('memento_mori')}</span>
           </span>
         )}

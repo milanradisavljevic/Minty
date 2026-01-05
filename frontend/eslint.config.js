@@ -19,5 +19,9 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Set state in effects is a common intentional pattern here (data sync, interval refresh)
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])

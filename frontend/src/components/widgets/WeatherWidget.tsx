@@ -3,7 +3,6 @@ import { WidgetWrapper } from './WidgetWrapper';
 import type { WeatherData } from '../../types';
 import { getLocale, useTranslation } from '../../i18n';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { fetchWeatherData } from '../../utils/weather';
 
 const WEATHER_ICON: Record<number, string> = {
   0: '☀️',
@@ -37,41 +36,63 @@ export function WeatherWidget() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const errorPrefix = t('weather_error');
+  const unknownError = t('weather_unknown_error');
 
   useEffect(() => {
     let mounted = true;
     const controller = new AbortController();
+    const retryDelays = [1, 5, 15, 30].map((m) => m * 60 * 1000); // minutes to ms
+    let failureCount = 0;
+    let timeoutId: number | null = null;
 
-    async function fetchWeather() {
+    const scheduleNext = (delay: number) => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = window.setTimeout(runFetch, delay);
+    };
+
+    const runFetch = async () => {
+      if (!mounted) return;
+      setLoading(true);
       try {
-        const data = await fetchWeatherData({
-          latitude,
-          longitude,
+        const params = new URLSearchParams({
+          lat: String(latitude),
+          lon: String(longitude),
           units: weatherSettings?.units ?? 'metric',
-          signal: controller.signal,
         });
-        if (mounted) {
-          setWeather(data);
-          setError(null);
+        const res = await fetch(`/api/weather?${params.toString()}`, { signal: controller.signal });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
         }
+        const data = await res.json();
+        if (!mounted) return;
+        const weatherData: WeatherData | undefined = data?.weather;
+        if (!weatherData) throw new Error('No data');
+        setWeather(weatherData);
+        setError(null);
+        failureCount = 0;
+        scheduleNext(30 * 60 * 1000); // 30 minutes
       } catch (err) {
-        if (mounted && !(err instanceof DOMException && err.name === 'AbortError')) {
-          const message = err instanceof Error ? err.message : t('weather_unknown_error');
-          setError(`${t('weather_error')}: ${message}`);
-        }
+        if (!mounted || (err instanceof DOMException && err.name === 'AbortError')) return;
+        const message = err instanceof Error ? err.message : unknownError;
+        setError(`${errorPrefix}: ${message}`);
+        failureCount = Math.min(failureCount + 1, retryDelays.length - 1);
+        scheduleNext(retryDelays[failureCount]);
       } finally {
         if (mounted) setLoading(false);
       }
-    }
-    setLoading(true);
-    fetchWeather();
-    const interval = setInterval(fetchWeather, 10 * 60 * 1000);
+    };
+
+    runFetch();
+
     return () => {
       mounted = false;
       controller.abort();
-      clearInterval(interval);
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [latitude, longitude, weatherSettings?.units, language]);
+  }, [latitude, longitude, weatherSettings?.units, language, errorPrefix, unknownError]);
 
   if (loading) {
     return (

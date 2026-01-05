@@ -40,6 +40,18 @@ cd frontend && npm run dev
 npm run dev:electron
 ```
 
+## Stocks Ticker (Top Bar)
+- Source priority: Alpha Vantage (primary) → Yahoo Finance → CoinGecko (crypto only fallback).
+- Default Alpha key (dev/demo): `WXZCURA1RM9VXFIW`. Override via env `ALPHA_VANTAGE_API_KEY` or Settings → Stocks tab (API key field). Saved in backend settings.
+- Configure symbols and refresh interval in Settings → Stocks (comma-separated symbols like `AAPL, MSFT, SAP.DE, ^GSPC, BTC-USD`). Default refresh: 10 minutes. Shows current price + day % change.
+- Backend endpoints: `/api/quotes`, `/api/quotes/settings`, `/api/quotes/default`; WebSocket event: `quotes:update`. Scheduler refreshes on the configured interval. Sequential fetch to reduce rate-limit hits; Alpha “Note” responses trigger fallback.
+
+## Layout Presets
+- Persisted in SQLite table `layout_presets` with per-screenKey separation (`<width>x<height>@dpr<value>-<orientation>`).
+- API: `/api/layouts` (list/create/update/delete/set-default).
+- UI: Dashboard header “Layouts” controls — “Speichern als” saves current layout; Overwrite/Standard/Delete also reload the list so new presets appear immediately.
+- Stored format: raw React-Grid layout array (older `{ layout: [...] }` still parsed on load).
+
 ## Production build
 ```bash
 npm run build          # builds frontend + backend

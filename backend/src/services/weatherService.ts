@@ -7,6 +7,7 @@ interface WeatherCache {
 }
 
 let cache: WeatherCache | null = null;
+const MIN_TTL = 30 * 60 * 1000; // 30 minutes
 
 function mapDaily(data: any): DailyForecast[] {
   const dates: string[] = data.daily.time || [];
@@ -24,7 +25,7 @@ function mapDaily(data: any): DailyForecast[] {
 
 export async function getWeather(): Promise<WeatherData> {
   const cfg = getConfig();
-  const ttl = cfg.weather.updateInterval || 10 * 60 * 1000;
+  const ttl = Math.max(MIN_TTL, cfg.weather.updateInterval || MIN_TTL);
   const now = Date.now();
 
   if (cache && now - cache.fetchedAt < ttl) {

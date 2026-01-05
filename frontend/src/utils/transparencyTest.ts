@@ -16,10 +16,10 @@ interface TransparencyTestResult {
 
 function parseAlphaFromRGBA(color: string): number | null {
   // Parse rgba(r, g, b, a) or rgb(r, g, b)
-  const rgbaMatch = color.match(/rgba?\([\d\s,\.]+\)/);
+  const rgbaMatch = color.match(/rgba?\([\d\s,.]+\)/);
   if (!rgbaMatch) return null;
 
-  const values = rgbaMatch[0].match(/[\d\.]+/g);
+  const values = rgbaMatch[0].match(/[\d.]+/g);
   if (!values) return null;
 
   // If only 3 values, alpha is 1

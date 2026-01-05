@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '../i18n';
 import type { Language } from '../stores/settingsStore';
 
@@ -318,7 +318,7 @@ export function TipOfTheDay() {
   const linuxTips = getLinuxTips(lang);
   const shortcuts = getShortcuts(lang);
 
-  const getTipOfTheDay = (): Tip => {
+  const getTipOfTheDay = useCallback((): Tip => {
     const today = new Date();
     const dayOfYear = getDayOfYear(today);
 
@@ -350,9 +350,9 @@ export function TipOfTheDay() {
       case 'shortcut':
         return { type: 'shortcut' as const, content: shortcuts[dayOfYear % shortcuts.length] };
     }
-  };
+  }, [techHistory, linuxTips, shortcuts]);
 
-  const getNextTip = (): Tip => {
+  const getNextTip = useCallback((): Tip => {
     // Get a random tip from a random category
     const categories: TipCategory[] = ['quote', 'linux', 'shortcut', 'history'];
     const randomCategory = categories[Math.floor(Math.random() * categories.length)];
@@ -372,12 +372,12 @@ export function TipOfTheDay() {
       case 'shortcut':
         return { type: 'shortcut' as const, content: shortcuts[Math.floor(Math.random() * shortcuts.length)] };
     }
-  };
+  }, [linuxTips, shortcuts, techHistory]);
 
   // Re-fetch tip when language changes
   useEffect(() => {
     setTip(getTipOfTheDay());
-  }, [language]);
+  }, [getTipOfTheDay]);
 
   const handleRefresh = () => {
     setTip(getNextTip());

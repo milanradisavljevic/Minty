@@ -5,6 +5,7 @@ import esTranslations from './locales/es.json';
 import srTranslations from './locales/sr.json';
 
 type Translations = typeof deTranslations;
+type TranslationRecord = Record<string, unknown>;
 
 const translations: Record<Language, Translations> = {
   de: deTranslations,
@@ -12,6 +13,9 @@ const translations: Record<Language, Translations> = {
   es: esTranslations,
   sr: srTranslations,
 };
+
+const isRecord = (value: unknown): value is TranslationRecord =>
+  typeof value === 'object' && value !== null;
 
 /**
  * Get nested translation by dot-notation key
@@ -22,16 +26,16 @@ export function useTranslation() {
 
   const t = (key: string): string => {
     const keys = key.split('.');
-    let value: any = translations[language];
+    let value: unknown = translations[language];
 
     for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
+      if (isRecord(value) && k in value) {
         value = value[k];
       } else {
         // Fallback to English if key not found
-        value = translations['en'];
+        value = translations.en;
         for (const fallbackKey of keys) {
-          if (value && typeof value === 'object' && fallbackKey in value) {
+          if (isRecord(value) && fallbackKey in value) {
             value = value[fallbackKey];
           } else {
             return key; // Return key if not found in any language
@@ -49,10 +53,10 @@ export function useTranslation() {
    */
   const tArray = (key: string): string[] => {
     const keys = key.split('.');
-    let value: any = translations[language];
+    let value: unknown = translations[language];
 
     for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
+      if (isRecord(value) && k in value) {
         value = value[k];
       } else {
         return [];

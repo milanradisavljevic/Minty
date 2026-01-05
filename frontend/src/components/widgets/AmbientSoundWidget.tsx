@@ -38,12 +38,13 @@ export function AmbientSoundWidget() {
 
   // Cleanup on unmount
   useEffect(() => {
+    const audios = audioRefs.current;
     return () => {
-      audioRefs.current.forEach((audio) => {
+      audios.forEach((audio) => {
         audio.pause();
         audio.src = '';
       });
-      audioRefs.current.clear();
+      audios.clear();
     };
   }, []);
 

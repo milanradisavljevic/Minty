@@ -25,7 +25,12 @@ function formatTime(totalSeconds: number) {
 // Lightweight beep without extra assets
 function playChime() {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    type AudioContextCtor = typeof AudioContext;
+    const AudioContextClass =
+      window.AudioContext || (window as { webkitAudioContext?: AudioContextCtor }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const ctx = new AudioContextClass();
     const duration = 0.2;
     [880, 660].forEach((freq, idx) => {
       const osc = ctx.createOscillator();
